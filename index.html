@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Serif:wght@500;600&display=swap" rel="stylesheet">
+<script>try{var t=localStorage.getItem('sa.theme');if(t==='dark'||t==='light')document.documentElement.dataset.theme=t}catch(e){}</script>
 <style>
 /* Layout: fixed sector rail on the left, sub-sector cards with ticker chips in the main column. */
 :root{
@@ -131,6 +132,52 @@ h1{font-family:var(--display);font-size:clamp(26px,4vw,36px);line-height:1.15;ma
   .brand-sub{display:none}
 }
 @media (prefers-reduced-motion:reduce){.chev{transition:none}}
+
+/* Added: strength, status, screener, rotation map, watchlist, guide */
+.navsep{height:1px;background:var(--line);margin:8px 8px}
+.qd{display:inline-block;font-family:var(--body);font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:999px;white-space:nowrap;vertical-align:1px}
+.qd.q-Leading{color:var(--up);background:color-mix(in srgb,var(--up) 13%,transparent)}
+.qd.q-Gaining{color:var(--large);background:var(--large-bg)}
+.qd.q-Fading{color:var(--small);background:var(--small-bg)}
+.qd.q-Lagging{color:var(--down);background:color-mix(in srgb,var(--down) 12%,transparent)}
+.sb{display:inline-flex;align-items:center;gap:6px;justify-content:flex-end}
+.sb i{display:block;width:46px;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.sb i b{display:block;height:100%;background:var(--accent)}
+.info{display:inline-flex;width:15px;height:15px;border-radius:50%;border:1px solid var(--line);font:500 10px/1 var(--body);align-items:center;justify-content:center;color:var(--muted);cursor:help;vertical-align:1px}
+.flag{border:0;background:none;cursor:pointer;color:var(--muted);padding:0 5px 0 0;font-size:14px;line-height:1}
+.flag.on{color:var(--small)}
+.btn2{border:1px solid var(--line);background:var(--panel);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px}
+.btn2:hover:not(:disabled){background:var(--accent-soft)}
+.btn2:disabled{opacity:.5;cursor:default}
+.lnk{border:0;background:none;padding:0;cursor:pointer;font-weight:500;text-align:left}
+.lnk:hover{text-decoration:underline}
+.sel{padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:13px;max-width:100%}
+.selbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:10px}
+.pulse{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:12px}
+.stat{border-top:1px solid var(--line);padding-top:8px}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font-family:var(--display);font-weight:600;font-size:21px;line-height:1.35}
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:4px 24px}
+.gl .rt.neg{color:var(--down)}
+.st th.tl,.st td.tl{text-align:left}
+.st td.tl{font-family:var(--body);font-size:13px}
+.st a.tk{font-family:var(--mono);font-weight:500;text-decoration:none}
+.st a.tk:hover{text-decoration:underline}
+.st td.rating{font-weight:600}
+.st input[type=checkbox]{accent-color:var(--accent);margin:0 6px 0 0;vertical-align:-1px}
+.rot svg{width:100%;height:auto;display:block}
+.rot .ax{font:11px var(--body);fill:var(--muted)}
+.rot .ql{font:600 12px var(--body);fill:var(--muted)}
+.rot .lb{font:11px var(--body);fill:var(--ink);pointer-events:none}
+.rot .rp{cursor:pointer}
+.rot .rp:hover .d{stroke:var(--ink)}
+.guide h2{font-family:var(--display);font-weight:600;font-size:17px;margin:0 0 6px}
+.guide p,.guide li{max-width:72ch}
+.guide p{margin:6px 0}
+.guide ul,.guide ol{margin:6px 0;padding-left:20px}
+.guide li{margin:4px 0}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:8px;font-size:13px;z-index:50;box-shadow:0 4px 18px rgba(0,0,0,.18);max-width:calc(100vw - 32px)}
+@media (max-width:820px){.navsep{width:1px;height:auto;margin:4px 2px;flex:none}}
 </style>
 </head>
 <body>
@@ -144,26 +191,43 @@ h1{font-family:var(--display);font-size:clamp(26px,4vw,36px);line-height:1.15;ma
     <div class="top">
       <input class="search" id="q" type="search" placeholder="Search a ticker or a sub-sector, for example HDFCBANK or Cement" aria-label="Search">
       <div class="caps" id="caps" role="group" aria-label="Market cap filter"></div>
+      <div class="pt" id="hz" role="group" aria-label="Time frame"><button type="button" data-hz="short">Short</button><button type="button" data-hz="medium">Medium</button><button type="button" data-hz="long">Long</button></div>
+      <button type="button" class="cap" id="themeBtn" aria-label="Switch light or dark mode"></button>
     </div>
     <div id="view"></div>
-    <p class="note">Sectors and market-cap labels come from your file. Sub-sectors were assigned by hand from each company's main business, following the NSE and SEBI industry classification as a guide. Companies that could not be placed with confidence are listed under Others / Unclassified. Ticker chips open the company page on Screener. Returns are price-only, split-adjusted, from end-of-day closes (hover a chip for all four periods). Top gainers follow the sector and market-cap filters. Sector and sub-sector figures are the median stock return, so a few extreme movers do not skew them.</p>
+    <p class="note">Sectors and market-cap labels come from your file. Sub-sectors were assigned by hand from each company's main business, following the NSE and SEBI industry classification as a guide. Companies that could not be placed with confidence are listed under Others / Unclassified. Ticker chips open the company page on Screener. Returns are price-only, split-adjusted, from end-of-day closes (hover a chip for all four periods). Top gainers follow the sector and market-cap filters. Sector and sub-sector figures are the median stock return, so a few extreme movers do not skew them. Strength, status and ratings are worked out in your browser from these returns: they rank each group or stock against the rest for the chosen time frame. They are a research aid, not investment advice.</p>
   </main>
 </div>
+<div class="toast" id="toast" role="status" hidden></div>
 <script src="perf.js" onerror="void 0"></script>
 <script>
 const DATA=[{"n":"Industrials","s":[{"n":"Industrial Machinery & Engines","x":[["AARON","S"],["AARTECH","S"],["ACE","M"],["AFFORDABLE","S"],["AJAXENGG","M"],["ANUP","S"],["AXTEL","S"],["BAJAJST","S"],["BATLIBOI","S"],["BBL","S"],["BONFIG","M"],["CUMMINSIND","L"],["DENORA","S"],["DIFFNKG","S"],["EIMCOELECO","S"],["ELGIEQUIP","M"],["ESABINDIA","M"],["GMMPFAUDLR","M"],["GREAVESCOT","M"],["HARSHA","S"],["HDFIRE","M"],["HLEGLAS","S"],["HONDAPOWER","S"],["ICEMAKE","S"],["INDOFARM","S"],["INGERRAND","M"],["JASH","S"],["JYOTICNC","L"],["KABRAEXTRU","S"],["KIRLOSBROS","M"],["KIRLOSENG","L"],["KLBRENG-B","S"],["KRN","M"],["KSB","M"],["LLOYDSENGG","M"],["LMW","M"],["LOKESHMACH","S"],["MACPOWER","S"],["MAMATA","S"],["MAZDA","S"],["OSWALPUMPS","S"],["PITTIENG","S"],["PRAJIND","S"],["PROSTARM","S"],["RAJOOENG","S"],["ROTO","S"],["RVTH","S"],["SHAKTIPUMP","S"],["SWARAJENG","S"],["TEGA","M"],["THEJO","S"],["THERMAX","L"],["TIINDIA","L"],["TIL","S"],["TRF","S"],["UNIDT","S"],["UNIPARTS","S"],["VELJAN","S"],["WALCHANNAG","S"],["WENDT","S"],["YUKEN","S"],["ZETWERK","L"]]},{"n":"Electrical Equipment & T&D","x":[["ABB","L"],["ADOR","S"],["ADVAIT","S"],["ATLANTAELE","M"],["BHEL","L"],["CGPOWER","L"],["DHOOTTRANS","L"],["EKC","S"],["ELECON","M"],["ENRIN","L"],["FOCUS","S"],["GVT&D","L"],["HPL","S"],["INDOTECH","S"],["KARAMTARA","M"],["KECL","S"],["KIRLPNU","M"],["LASERPOWER","S"],["MARINE","M"],["MARSONS","S"],["MEIL","S"],["PERMAGN","S"],["PIGL","S"],["POWERICA","M"],["POWERINDIA","L"],["QPOWER","M"],["RISHABH","S"],["S&SPOWER","S"],["SALZERELEC","S"],["SCHNEIDER","L"],["SERVOTECH","S"],["SHILCTECH","S"],["SIEMENS","L"],["SKIPPER","M"],["SPECTRUM","M"],["SWELECTES","S"],["TARIL","M"],["TDPOWERSYS","L"],["TEMPSENS","S"],["TRITURBINE","M"],["VETO","S"],["VGUARD","M"],["VOLTAMP","M"]]},{"n":"Packaging & Plastic Films","x":[["AGI","S"],["BBTCL","S"],["COMSYN","S"],["COSMOFIRST","S"],["EMMBI","S"],["EPL","M"],["ESTER","S"],["GRWRHITECH","M"],["GUJAPOLLO","S"],["HINDADH","S"],["HUHTAMAKI","S"],["KANPRPLA","S"],["KNACK","S"],["MOLDTKPAC","S"],["NAHARPOLY","S"],["POLYPLEX","S"],["PYRAMID","S"],["TCPLPACK","S"],["TPLPLASTEH","S"],["UFLEX","S"],["WORTHPERI","S"],["XPROINDIA","S"]]},{"n":"Cables & Wires","x":[["APARINDS","L"],["BIRLACABLE","S"],["CORDSCABLE","S"],["DIACABS","L"],["DYCL","S"],["FINCABLES","M"],["KEI","L"],["PARACABLES","S"],["PLAZACABLE","S"],["POLYCAB","L"],["QUADFUTURE","S"],["RRKABEL","L"],["STLTECH","L"],["UNIVCABLES","S"],["VIDYAWIRES","S"]]},{"n":"Solar & Wind Equipment","x":[["EMMVEE","M"],["INOXINDIA","M"],["INOXWIND","M"],["SAATVIKGL","S"],["SOLEX","S"],["SURYAROSNI","S"],["SUZLON","L"],["UTLSOLAR","M"],["VIKRAMSOLR","M"],["WAAREEENER","L"],["WAAREEINDO","S"],["WEBELSOLAR","S"],["WINDMACHIN","S"]]},{"n":"Bearings & Power Transmission","x":[["IGARASHI","S"],["NRBBEARING","S"],["SCHAEFFLER","L"],["SHANTIGEAR","S"],["SKFINDIA","M"],["SKFINDUS","M"],["TIMKEN","L"]]},{"n":"Abrasives, Welding & Refractories","x":[["CARBORUNIV","M"],["GRAPHITE","M"],["GRINDWELL","L"],["WELCORP","L"]]},{"n":"Rail & Heavy Engineering","x":[["COCKERILL","S"],["JWL","M"],["TEXRAIL","S"],["TITAGARH","M"]]},{"n":"Steel Tubes & Pipes","x":[["APLAPOLLO","L"],["HITECHCORP","S"],["JINDALSAW","M"],["RATNAMANI","M"]]},{"n":"Batteries & Lighting","x":[["EVEREADY","S"],["EXICOM","S"],["NIPPOBATRY","S"]]},{"n":"Water & Environmental Engineering","x":[["CEWATER","S"]]},{"n":"Others / Unclassified","x":[["BAJAJINDEF","S"],["BI","S"],["BIRLAPREC","S"],["HTEL","S"],["INA","S"],["INDOMIM","L"],["ITL","S"],["LCL","M"],["MODISONLTD","S"],["OMNI","M"],["RELTD","S"],["RMC","S"],["SETL","M"],["SHREERAMA","S"],["TAALTECH","S"],["TRIVENIPT","S"]]}]},{"n":"Financials","s":[{"n":"Investment & Holding Companies","x":[["AIIL","L"],["BAJAJHLDNG","L"],["BFINVEST","S"],["CHOLAHLDNG","L"],["CONSOFINVT","S"],["CPCAP","S"],["CREST","S"],["DHUNINV","S"],["FEDDERSHOL","S"],["GAJA","S"],["GFLLIMITED","S"],["IITL","S"],["JINDALPHOT","S"],["JPOLYINVST","S"],["JSWHL","M"],["KAMAHOLD","M"],["KIRANVYPAR","S"],["KIRLOSIND","S"],["MAHAPEXLTD","S"],["MAHSCOOTER","M"],["MAXIND","S"],["NAHARCAP","S"],["ONELIFECAP","S"],["RANEHOLDIN","S"],["RSDFIN","S"],["SHAHINVEST","S"],["SHARDUL","S"],["STEELCITY","S"],["STEL","S"],["SUMMITSEC","S"],["TAMBOLIIN","S"],["TATAINVEST","L"],["THEINVEST","S"],["TSFINV","M"],["TVSHLTD","L"],["VGCL","S"],["VLSFINANCE","S"],["WELINV","S"]]},{"n":"Diversified NBFC & Other Lenders","x":[["ABCAPITAL","L"],["ARCIL","S"],["ARMANFIN","S"],["AYE","S"],["BAJAJFINSV","L"],["BAJFINANCE","L"],["CGCL","L"],["CSLFINANCE","S"],["FEDFINA","M"],["FIVESTAR","M"],["GEECEE","S"],["HDBFS","L"],["IIFL","L"],["INDOSTAR","S"],["JIOFIN","L"],["KEYFINSERV","S"],["LAXMIINDIA","S"],["LTF","L"],["MANBA","S"],["MANCREDIT","S"],["MASFIN","S"],["MONEYBOXX","S"],["NBIFIN","S"],["NORTHARC","S"],["PAISALO","M"],["PNBGILTS","S"],["POONAWALLA","L"],["RELIGARE","M"],["SAMMAANCAP","M"],["SBFC","M"],["SGFIN","M"],["STARTECK","S"],["TATACAP","L"],["TFCILTD","M"],["UGROCAP","S"]]},{"n":"Stock Broking","x":[["5PAISA","S"],["ANGELONE","L"],["BIRLAMONEY","S"],["CHOICEIN","M"],["DBSTOCKBRO","S"],["DOLATALGO","S"],["FINKURVE","S"],["GEOJITFSL","S"],["GROWW","L"],["HEXATRADEX","S"],["IIFLCAPS","S"],["INDOTHAI","S"],["MASTERTR","S"],["MOTILALOFS","L"],["NDLVENTURE","S"],["PRIMESECU","S"],["SHAREINDIA","S"],["SMCGLOBAL","S"],["SYSTMTXC","S"]]},{"n":"Housing Finance","x":[["AADHARHFC","M"],["AAVAS","M"],["APTUS","M"],["ARYAMAN","S"],["BAJAJHFL","L"],["CANFINHOME","M"],["GICHSGFIN","S"],["GRANDOAK","S"],["HOMEFIRST","M"],["INDIASHLTR","M"],["LICHSGFIN","L"],["PNBHOUSING","L"],["REPCOHOME","S"],["SAHLIBHFI","S"],["SRGHFL","S"]]},{"n":"Wealth Management & Investment Banking","x":[["360ONE","L"],["ANANDRATHI","L"],["ARIHANTCAP","S"],["DAMCAPITAL","S"],["EDELALTS","M"],["EDELWEISS","M"],["EMKAY","S"],["JMFINANCIL","M"],["MONARCH","S"],["NUVAMA","L"],["PRUDENT","M"],["WEALTH","S"]]},{"n":"Asset Management","x":[["ABSLAMC","L"],["CRAMC","S"],["HDFCAMC","L"],["ICICIAMC","L"],["NAM-INDIA","L"],["SBIFUNDS","L"],["UTIAMC","M"]]},{"n":"Gold Loan & Microfinance","x":[["CREDITACC","M"],["FUSION","S"],["MANAPPURAM","L"],["MUTHOOTFIN","L"],["MUTHOOTMF","S"],["SATIN","S"],["SPANDANA","S"]]},{"n":"Vehicle & Consumer Finance","x":[["CHOLAFIN","L"],["M&MFIN","L"],["MUFIN","S"],["MUTHOOTCAP","S"],["SBICARD","L"],["SHRIRAMFIN","L"],["SUNDARMFIN","L"]]},{"n":"Exchanges & Market Infrastructure","x":[["BSE","L"],["CAMS","M"],["CDSL","L"],["IEX","M"],["KFINTECH","M"],["MCX","L"]]},{"n":"General & Health Insurance","x":[["GICRE","L"],["GODIGIT","L"],["ICICIGI","L"],["NIACL","L"],["NIVABUPA","M"],["STARHEALTH","L"]]},{"n":"Infrastructure & Government Finance","x":[["HUDCO","L"],["IFCI","M"],["IREDA","L"],["IRFC","L"],["PFC","L"],["RECLTD","L"]]},{"n":"Life Insurance","x":[["CANHLIFE","M"],["HDFCLIFE","L"],["ICICILIFE","L"],["LICI","L"],["MFSL","L"],["SBILIFE","L"]]},{"n":"Credit Rating Agencies","x":[["CARERATING","S"],["CRISIL","L"],["ICRA","S"]]},{"n":"Others / Unclassified","x":[["AFSL","S"],["ALGOQUANT","S"],["ARSSBL","S"],["BLIL","S"],["GCSL","S"],["HEALTHX","S"],["TEAMGTY","S"]]}]},{"n":"Healthcare","s":[{"n":"Pharma Formulations (Branded & Generic)","x":[["AAREYDRUGS","S"],["ABBOTINDIA","L"],["AJANTPHARM","L"],["AKUMS","M"],["ALBERTDAVD","S"],["ALKEM","L"],["ALPA","S"],["AMANTA","S"],["AMRUTANJAN","S"],["ANUHPHR","S"],["ASTRAZEN","M"],["AUROPHARMA","L"],["BAFNAPH","S"],["BALPHARMA","S"],["BETA","S"],["BIOCON","L"],["BLISSGVS","M"],["BPLPHARMA","S"],["BROOKS","S"],["CAPLIPOINT","M"],["CIPLA","L"],["DRREDDY","L"],["EMCURE","L"],["ERIS","M"],["FDC","M"],["GLAND","L"],["GLAXO","L"],["GLENMARK","L"],["GUFICBIO","S"],["GUJTHEM","S"],["HESTERBIO","S"],["INDOCO","S"],["IPCALAB","L"],["JAGSNPHARM","S"],["JUBLPHARMA","M"],["KOPRAN","S"],["KPL","S"],["LINCOLN","S"],["LUPIN","L"],["LYKALABS","S"],["MAKERSL","S"],["MANKIND","L"],["MARKSANS","M"],["MOREPENLAB","S"],["NATCAPSUQ","S"],["NATCOPHARM","M"],["NOVARTIND","S"],["ORCHPHARMA","M"],["PAR","S"],["PARASHLTH","M"],["PFIZER","M"],["PGHL","M"],["PPLPHARMA","L"],["RPGLIFE","S"],["RUBICON","L"],["SAIPARENT","S"],["SAKAR","S"],["SANOFI","M"],["SANOFICONR","M"],["SHUKRAPHAR","S"],["SPARC","M"],["STAR","M"],["SUNPHARMA","L"],["SYMBIOTEC","M"],["THEMISMED","S"],["TORNTPHARM","L"],["UNICHEMLAB","S"],["VALIANTLAB","S"],["VENUSREM","S"],["WANBURY","S"],["WINDLAS","S"],["WOCKPHARMA","L"],["ZIMLAB","S"],["ZOTA","S"],["ZYDUSLIFE","L"]]},{"n":"API, CDMO & Research Services","x":[["AARTIDRUGS","S"],["AARTIPHARM","M"],["ACUTAAS","L"],["ADVENZYMES","S"],["ALIVUS","M"],["ANTHEM","L"],["APLLTD","L"],["BLUEJET","M"],["COHANCE","M"],["CONCORDBIO","M"],["DCAL","S"],["DIVISLAB","L"],["FREDUN","S"],["GRANULES","L"],["HIKAL","S"],["INDGN","M"],["INDSWFTLAB","S"],["INNOVACAP","M"],["IOLCP","M"],["KREBSBIO","S"],["LAURUSLABS","L"],["NEULANDLAB","L"],["NGLFINE","S"],["ONESOURCE","M"],["PANACEABIO","S"],["PARNAXLAB","S"],["SAILIFE","L"],["SENORES","M"],["SMSPHARMA","S"],["SOLARA","S"],["SUPRIYA","M"],["SUVEN","M"],["SYNGENE","M"],["VIMTALABS","S"]]},{"n":"Hospitals & Healthcare Services","x":[["AGARWALEYE","M"],["APOLLOHOSP","L"],["ARTEMISMED","M"],["ASTERDM","L"],["CORONA","M"],["ENTERO","M"],["FORTIS","L"],["GAUDIUMIVF","S"],["GPTHEALTH","S"],["HCG","M"],["INDRAMEDCO","S"],["JLHL","M"],["JSLL","S"],["KAYA","S"],["KIMS","L"],["KMCSHIL","S"],["KOVAI","M"],["LOTUSEYE","S"],["MANIPALHOS","L"],["MAXHEALTH","L"],["MEDANTA","L"],["NEPHROPLUS","M"],["NH","L"],["ONEGLOBAL","S"],["PARKHOSPS","M"],["QMSMEDI","S"],["RAINBOW","M"],["SHALBY","S"],["YATHARTH","M"]]},{"n":"Medical Devices & Consumables","x":[["BAJAJHCARE","S"],["KILITCH","S"],["LAXMIDENTL","S"],["MEDICAMEQ","S"],["MEDICO","S"],["POLYMED","M"],["SHILPAMED","M"],["SMT","M"],["TARSONS","S"]]},{"n":"Diagnostics","x":[["3BBLACKBIO","S"],["KRSNAA","S"],["LALPATHLAB","L"],["METROPOLIS","M"],["MOLBIO","M"],["SURAKSHA","S"],["THYROCARE","M"],["VIJAYA","M"]]},{"n":"Others / Unclassified","x":[["AMBALALSA","S"],["GKSL","S"],["SGRL","S"],["TAKE","S"],["VIYASH","M"]]}]},{"n":"Chemicals","s":[{"n":"Specialty Chemicals","x":[["AARTIIND","M"],["AARTISURF","S"],["ACI","M"],["ADVANCE","S"],["AETHER","L"],["AKSHARCHEM","S"],["ALKYLAMINE","M"],["ALUFLUOR","S"],["AMAL","S"],["ANURAS","M"],["ARIES","S"],["ARVEE","S"],["ASTEC","S"],["ATUL","M"],["BALAMINES","M"],["BODALCHEM","S"],["CAMLINFINE","S"],["CHEMCRUX","S"],["CHEMPLASTS","S"],["CLEAN","M"],["DIAMINESQ","S"],["DMCC","S"],["ELANTAS","M"],["EXCELINDUS","S"],["FINEORG","M"],["FLUOROCHEM","L"],["FOSECOIND","S"],["GALAXYSURF","M"],["GEMAROMA","S"],["HSCL","L"],["IGCL","S"],["INDOAMIN","S"],["JGCHEM","S"],["KANORICHEM","S"],["KIRIINDUS","S"],["KRONOX","S"],["LXCHEM","S"],["MANORG","S"],["NAVINFLUOR","L"],["NEOGEN","M"],["NOCIL","S"],["OAL","S"],["PIDILITIND","L"],["PRASOLCHEM","S"],["PRIVISCL","M"],["ROSSARI","S"],["SHREEPUSHK","S"],["SRD","S"],["SUDEEPPHRM","M"],["TATVA","S"],["TGVSL","S"],["TIRUMALCHM","S"],["TRANSPEK","S"],["VALIANTORG","S"],["VIDHIING","S"],["VINATIORGA","M"],["VITAL","S"],["YASHO","S"]]},{"n":"Diversified & Others","x":[["BASF","M"],["BHAGCHEM","S"],["BHAGERIA","S"],["BLACKROSE","S"],["CHEMCON","S"],["CHEMFAB","S"],["DYNPRO","S"],["GODREJIND","L"],["GRAUWEIL","S"],["IVP","S"],["JOCIL","S"],["JYOTIRES","S"],["KHAICHEM","S"],["LORDSCHLO","S"],["MBAPL","M"],["OCCLLTD","S"],["PAUSHAKLTD","S"],["PLATIND","S"],["PODDARMENT","S"],["RAMAPHO","S"],["SRF","L"],["VISHNU","S"]]},{"n":"Agrochemicals & Pesticides","x":[["AGASTYAEN","S"],["ANDHRSUGAR","S"],["ASAHISONG","S"],["BAYERCROP","M"],["BHARATRAS","S"],["DHANUKA","S"],["DHARMAJ","S"],["GSPCROP","S"],["HERANBA","S"],["INSECTICID","S"],["IPL","S"],["JAYAGROGN","S"],["NACLIND","S"],["PIIND","L"],["PUNJABCHEM","S"],["RALLIS","S"],["SHARDACROP","M"],["SUMICHEM","M"],["SUNSHIEL","S"],["UPL","L"]]},{"n":"Commodity Chemicals & Chlor-Alkali","x":[["DEEPAKNTR","L"],["EPIGRAL","S"],["FCL","M"],["GHCL","S"],["GUJALKALI","S"],["HPAL","S"],["IGPL","S"],["INDOBORAX","S"],["INDOKEM","S"],["MOL","S"],["PCBL","M"],["TATACHEM","M"],["TUTIALKA","S"]]},{"n":"Fertilizers","x":[["CHAMBLFERT","M"],["COROMANDEL","L"],["DEEPAKFERT","M"],["FACT","L"],["GNFC","M"],["GSFC","M"],["KRISHANA","M"],["MADRASFERT","S"],["NFL","S"],["PARADEEP","M"],["RCF","M"],["SPIC","S"],["ZUARI","S"]]},{"n":"Polymers, Plastics & Rubber Chemicals","x":[["AMNPLST","S"],["APCOTEXIND","S"],["DAICHI","S"],["DDEVPLSTIK","S"],["FAIRCHEMOR","S"],["HPIL","S"],["JUBLCPL","S"],["JUBLINGREA","M"],["NITTAGELA","S"],["PLASTIBLEN","S"],["SRHHYPOLTD","S"],["STALLION","S"],["VINYLINDIA","S"]]},{"n":"Dyes, Pigments & Colorants","x":[["CHEMBOND","S"],["CHEMBONDCH","S"],["DICIND","S"],["INDTONER","S"],["SHIVALIK","S"],["SHK","S"],["SUDARCOLOR","S"],["SUDARSCHEM","M"]]},{"n":"Lubricants & Petro-Specialties","x":[["CASTROLIND","M"],["GULFOILLUB","M"],["GULFPETRO","S"],["ULTRAMAR","S"],["VEEDOL","S"]]},{"n":"Industrial Gases","x":[["LINDEINDIA","L"]]},{"n":"Others / Unclassified","x":[["ISHANCH","S"]]}]},{"n":"Realty","s":[{"n":"Construction & EPC Contractors","x":[["AFCONS","M"],["AHLUCONT","S"],["ASHOKA","S"],["ATLANTAA","S"],["BLKASHYAP","S"],["BRAHMINFRA","S"],["CAPACITE","S"],["CEIGALL","M"],["DBL","M"],["EFCIL","S"],["EMSLIMITED","S"],["ENGINERSIN","M"],["GENCON","S"],["GLOBECIVIL","S"],["GMRP&UI","M"],["GPTINFRA","S"],["GRINFRA","M"],["HECPROJECT","S"],["HGINFRA","S"],["IL&FSENGG","S"],["IRCON","M"],["ISGEC","M"],["JKIL","S"],["JNKINDIA","S"],["JNPR","M"],["KALPATARU","M"],["KEC","M"],["KNRCON","S"],["KPIL","L"],["LCCPROJECT","S"],["LT","L"],["MANINFRA","S"],["MBEL","S"],["NCC","M"],["PNCINFRA","S"],["POWERMECH","M"],["PSPPROJECT","S"],["RAMKY","S"],["RPPINFRA","S"],["RVNL","L"],["SHRIRAMPPS","S"],["SIMPLEXINF","S"],["SOMATEX","S"],["SPMLINFRA","S"],["SUMIT","S"],["SUPREMEINF","S"],["TARMAT","S"],["TCC","S"],["TECHNOCRAF","S"],["TECHNOE","M"],["TEXINFRA","S"],["TRANSRAILL","M"],["VASCONEQ","S"],["VIKRAN","S"],["VINDHYATEL","S"],["VPRPL","S"],["WSI","S"]]},{"n":"Real Estate Developers","x":[["ABREL","M"],["AJMERA","S"],["AMJLAND","S"],["ANANTRAJ","M"],["ANNU","S"],["ARIHANT","S"],["ARKADE","S"],["ARVSMART","S"],["ASHIANA","S"],["BRIGADE","M"],["DBREALTY","S"],["DLF","L"],["ELDEHSG","S"],["EMAMIREAL","S"],["EMBDL","M"],["GANESHHOU","M"],["GARUDA","S"],["GODREJPROP","L"],["HEMIPROP","S"],["HUBTOWN","S"],["KOLTEPATIL","S"],["LANCORHOL","S"],["LODHA","L"],["LOTUSDEV","M"],["MAHLIFE","M"],["MARATHON","S"],["MAXESTATES","M"],["MBECL","S"],["NESCO","M"],["NIRLON","M"],["OBEROIRLTY","L"],["OMAXE","S"],["OMINFRAL","S"],["PANSARI","S"],["PFOCUS","L"],["PHOENIXLTD","L"],["PRANAV","S"],["PRESTIGE","L"],["PURVA","S"],["PVP","S"],["RAYMONDREL","S"],["RUSTOMJEE","S"],["RVHL","S"],["SHRADDHA","S"],["SHRADHA","S"],["SIGNATURE","M"],["SOBHA","M"],["SRM","S"],["SUNTECK","S"],["SURAJEST","S"],["SVGLOBAL","S"],["TARC","S"],["UNIVASTU","S"],["VEEGALAND","S"],["VIVIANA","S"]]},{"n":"Building Products & Related Infra","x":[["CEMPRO","L"],["GLASSWALL","S"],["INDIANHUME","S"],["MARKOLINES","S"],["MCCHRLS-B","S"],["MIIL","S"],["MODIS","S"],["MOLDTECH","S"],["NIMBSPROJ","S"],["SUPREME","S"],["WELENT","M"],["ZODIAC","S"]]},{"n":"Power & Renewable Developers","x":[["ACMESOLAR","L"],["BAJEL","S"],["BGRENERGY","S"],["BONDADA","S"],["GKENERGY","S"],["KPEL","S"],["OMPOWER","S"],["RELINFRA","S"],["SWSOLAR","S"]]},{"n":"Water & Environmental Engineering","x":[["DENTA","S"],["EIEL","S"],["ELPROINTL","S"],["IONEXCHANG","S"],["WABAG","M"],["WPIL","S"]]},{"n":"Others / Unclassified","x":[["AGIIL","S"],["ALEMBICLTD","S"],["ARIHANTSUP","S"],["BCPL","S"],["BLAL","S"],["GVPIL","S"],["LIKHITHA","S"],["LUMINO","S"],["VNL","S"]]}]},{"n":"I.T","s":[{"n":"Mid-tier IT Services & Digital Engineering","x":[["AAATECH","S"],["ACSTECH","S"],["ADSL","S"],["ALLDIGI","S"],["ARMEE","S"],["BBOX","M"],["BSOFT","M"],["COFORGE","L"],["CORDELIA","M"],["CSM","S"],["CYBERTECH","S"],["DCI","S"],["DSSL","S"],["EXPLEOSOL","S"],["HAPPSTMNDS","S"],["IKS","L"],["INFOBEAN","S"],["INTELLECT","M"],["INTENTECH","S"],["ISFT","S"],["IVALUE","S"],["KSOLVES","S"],["MASTEK","S"],["MINDTECK","S"],["MPHASIS","L"],["MPSLTD","S"],["NIITMTS","S"],["NINSYS","S"],["ONWARDTEC","S"],["ORIENTTECH","S"],["PERSISTENT","L"],["RELIABLE","S"],["RSYSTEMS","S"],["SAKSOFT","S"],["SIGMA","S"],["SILVERTUC","S"],["SONATSOFTW","M"],["SRIT","S"],["TERASOFT","S"],["TREJHARA","S"],["TRIGYN","S"],["XTRANET","S"],["ZAGGLE","S"],["ZENSARTECH","M"]]},{"n":"Software Products & SaaS","x":[["63MOONS","S"],["ACCELYA","S"],["AMAGI","M"],["AURIONPRO","S"],["AURUM","S"],["BLS","M"],["BLSE","S"],["CALSOFT","S"],["CAPILLARY","S"],["CEINSYS","S"],["DATAMATICS","S"],["EMUDHRA","S"],["EXCELSOFT","S"],["FUSIONCX","S"],["GENESYS","S"],["GOLDTECH","S"],["INNOVANA","S"],["INSPIRISYS","S"],["IRIS","S"],["IZMO","S"],["KISSHT","M"],["NEWGEN","M"],["NPST","S"],["NUCLEUS","S"],["NURECA","S"],["OFSS","L"],["PROTEAN","S"],["QUICKHEAL","S"],["RAMCOSYS","S"],["RATEGAIN","M"],["ROUTE","S"],["SECMARK","S"],["SMARTLINK","S"],["SOFTTECH","S"],["STYL","S"],["TANLA","M"],["TBOTEK","M"],["XCHANGING","S"],["XELPMOC","S"]]},{"n":"Internet & Consumer Platforms","x":[["AFFLE","L"],["CCAVENUE","L"],["ETERNAL","L"],["GYFTR","S"],["INDIAMART","M"],["IXIGO","M"],["JUSTDIAL","M"],["MAPMYINDIA","S"],["MOBIKWIK","S"],["MONEYVIEW","M"],["MSTCLTD","S"],["NAUKRI","L"],["NAZARA","M"],["NYKAA","L"],["PAYTM","L"],["PINELABS","M"],["POLICYBZR","L"],["SHIPROCKET","M"],["SWIGGY","L"],["TURTLEMINT","S"],["UNIECOM","S"],["URBANCO","L"],["YATRA","S"]]},{"n":"BPO, KPO & Analytics","x":[["DIGITIDE","S"],["ECLERX","M"],["FRACTAL","M"],["FSL","M"],["HGS","S"],["LATENTVIEW","S"],["ONEPOINT","M"],["QUINT","S"],["RPSGVENT","S"],["RPTECH","S"],["SAGILITY","L"]]},{"n":"Cloud, Data Centres & Hardware","x":[["CONTROLPR","S"],["DLINKINDIA","S"],["E2E","M"],["ESDS","M"],["MOSCHIP","S"],["NETWEB","L"],["PANACHE","S"],["TECHNVISN","S"],["TVSELECT","S"],["VERTOZ","S"]]},{"n":"Engineering R&D","x":[["CYIENT","M"],["KPITTECH","M"],["LTTS","L"],["SASKEN","S"],["TATAELXSI","L"],["TATATECH","L"]]},{"n":"Large-cap IT Services","x":[["HCLTECH","L"],["INFY","L"],["LTM","L"],["TCS","L"],["TECHM","L"],["WIPRO","L"]]},{"n":"Education & Training Tech","x":[["APTECHT","S"],["MPIMANIPAL","M"],["NIITLTD","S"]]}]},{"n":"Consumer Discretionary","s":[{"n":"Jewellery","x":[["BLUESTONE","M"],["DPABHUSHAN","S"],["GOLDIAM","S"],["KALYANKJIL","L"],["KHAZANCHI","S"],["LALITHAA","M"],["MKJEWELS","S"],["MVGJL","S"],["NITIRAJ","S"],["PNGJL","M"],["PNGSREVA","S"],["PRIORITY","S"],["RADHIKAJWE","S"],["RAJESHEXPO","S"],["RBZJEWEL","S"],["RGL","S"],["SENCO","M"],["SHANKESH","S"],["SHANTIGOLD","S"],["SHRINGARMS","S"],["SILGO","S"],["SKYGOLD","M"],["TBZ","S"],["THANGAMAYL","M"],["TITAN","L"],["UDAYJEW","S"],["VAIBHAVGBL","S"]]},{"n":"Home Appliances & Consumer Durables","x":[["AMBER","L"],["BAJAJELEC","S"],["BLUESTARCO","L"],["BOSCH-HCIL","S"],["BPL","S"],["BUTTERFLY","S"],["CELLO","M"],["CROMPTON","M"],["EUREKAFORB","M"],["HAVELLS","L"],["HAWKINCOOK","S"],["HINDWAREAP","S"],["HONAUT","L"],["IFBIND","S"],["LGEINDIA","L"],["LGHL","S"],["MVELECTRO","S"],["ONIDA","S"],["ORIENTELEC","S"],["SINGERIND","S"],["STOVEKRAFT","S"],["SYMPHONY","S"],["TTKPRESTIG","M"],["VOLTAS","L"],["WEL","S"],["WHIRLPOOL","M"]]},{"n":"Retail & Apparel Chains","x":[["ABFRL","S"],["ABLBL","M"],["BCONCEPTS","S"],["DMART","L"],["EMIL","M"],["ETHOSLTD","M"],["FIRSTCRY","M"],["KALAMANDIR","S"],["MEDPLUS","M"],["MUFTI","S"],["PATELRMART","S"],["SHOPERSTOP","S"],["SPENCERS","S"],["SSRETAIL","S"],["STYLEBAAZA","S"],["TRENT","L"],["V2RETAIL","M"],["VMART","M"],["VMM","L"]]},{"n":"Electronics Manufacturing (EMS)","x":[["AVALON","M"],["CPPLUS","L"],["DIXON","L"],["ELIN","S"],["EPACK","S"],["GENUSPOWER","M"],["IKIO","S"],["KAYNES","M"],["KERNEX","S"],["PGEL","M"],["SFL","M"],["SPELS","S"],["SYRMA","L"],["VOEPL","S"]]},{"n":"Furniture, Timepieces & Lifestyle","x":[["CARYSIL","S"],["HMT","M"],["KDDL","M"],["MAYURUNIQ","S"],["MIDWESTLTD","S"],["PARIN","S"],["POKARNA","S"],["SHANKARA","S"],["STANLEY","S"],["SUPERHOUSE","S"],["TIMEX","M"]]},{"n":"Restaurants & Quick Service","x":[["BIL","S"],["COFFEEDAY","S"],["DEVYANI","M"],["JUBLFOOD","L"],["RAMBHAJO","S"],["RBA","M"],["SAPPHIRE","M"],["TRAVELFOOD","M"],["WESTLIFE","M"]]},{"n":"Footwear","x":[["BATAINDIA","M"],["CAMPUS","M"],["KHADIM","S"],["LIBERTSHOE","S"],["METROBRAND","L"],["REDTAPE","M"],["RELAXO","M"]]},{"n":"Auto Retail & Marketplaces","x":[["CARTRADE","M"],["LANDMARK","S"],["SEDEMAC","M"]]},{"n":"Others / Unclassified","x":[["ARHAM","S"],["AUSOMENT","S"],["AVL","M"],["DEEPA","S"],["HIRECT","S"],["MICEL","S"],["NITYAS","S"],["PVSL","S"],["RIR","S"],["SONAMLTD","S"],["SREEL","S"],["TEMBO","S"],["UFBL","S"]]}]},{"n":"FMCG","s":[{"n":"Packaged Foods & Dairy","x":[["ADFFOODS","S"],["ANNAPURNA","S"],["APEX","S"],["BECTORFOOD","M"],["BIKAJI","M"],["BNALTD","S"],["BRITANNIA","L"],["CLSEL","S"],["DODLA","M"],["FOODSIN","S"],["GOKUL","S"],["GOKULAGRO","M"],["GOPAL","S"],["HATSUN","L"],["HERITGFOOD","S"],["HNDFDS","M"],["KRBL","M"],["KWIL","M"],["LOTUSCHO","S"],["LTFOODS","M"],["MANORAMA","M"],["MEGASTAR","S"],["MILKYMIST","L"],["MLKFOOD","S"],["NESTLEIND","L"],["ORKLAINDIA","M"],["PARAGMILK","S"],["SCPL","S"],["SDBL","S"],["SKMEGGPROD","S"],["TASTYBITE","S"],["VENKEYS","S"],["VINCOFE","S"]]},{"n":"Edible Oils & Agri Commodities","x":[["AVANTIFEED","M"],["AWL","L"],["CCL","M"],["COASTCORP","S"],["DCMSRIND","S"],["GAEL","M"],["GODAVARIB","S"],["GODREJAGRO","M"],["GRMOVER","S"],["IFBAGRO","S"],["INDOUS","S"],["KNAGRI","S"],["KRISHIVAL","S"],["KRITINUT","S"],["KSCL","S"],["MODINATUR","S"],["RUBFILA","S"],["SANSTAR","S"],["SUKHJITS","S"],["WATERBASE","S"]]},{"n":"Household & Personal Care","x":[["BAJAJCON","M"],["COLPAL","L"],["CUPID","L"],["DABUR","L"],["EMAMILTD","M"],["GILLETTE","L"],["GODREJCP","L"],["HEXAGON","S"],["HINDUNILVR","L"],["JYOTHYLAB","M"],["KSE","S"],["MARICO","L"],["NATHBIOGEN","S"],["PATANJALI","L"],["PGHH","L"],["ZYDUSWELL","M"]]},{"n":"Sugar & Ethanol","x":[["AVADHSUGAR","S"],["BALRAMCHIN","M"],["BANARISUG","S"],["DALMIASUG","S"],["DBOL","S"],["DHAMPURSUG","S"],["DWARKESH","S"],["EIDPARRY","M"],["INDIAGLYCO","S"],["MAGADSUGAR","S"],["MAWANASUG","S"],["TRIVENI","M"],["UGARSUGAR","S"],["UTTAMSUGAR","S"],["ZUARIIND","S"]]},{"n":"Tea, Coffee & Soft Beverages","x":[["AVTNPL","S"],["DTIL","S"],["GILLANDERS","S"],["HARRMALAYA","S"],["JAYSREETEA","S"],["MCLEODRUSS","S"],["PKTEA","S"],["PONNIERODE","S"],["ROSSELLIND","S"],["SUNDROP","S"],["TATACONSUM","L"],["VADILALIND","M"],["VBL","L"]]},{"n":"Alcoholic Beverages","x":[["ABDL","L"],["ASALCBR","S"],["BSHSL","S"],["GLOBUSSPR","S"],["GMBREW","S"],["PICCADIL","M"],["RADICO","L"],["SULA","S"],["TI","M"],["UBL","L"],["UNITDSPR","L"]]},{"n":"Tobacco & Cigarettes","x":[["ELITECON","S"],["GODFRYPHLP","L"],["ITC","L"],["NTCIND","S"],["VSTIND","S"]]},{"n":"Eyewear & Others","x":[["ELGIRUBCO","S"],["LENSKART","L"],["TINNARUBR","S"]]},{"n":"Others / Unclassified","x":[["AEROPLANE","S"],["DIAMONDYD","S"],["EIFFL","S"],["GANESHCP","S"],["GRPLTD","S"],["INTLCONV","S"],["IWP","S"],["PIXTRANS","S"],["SHINDL","S"]]}]},{"n":"Metals & Mining","s":[{"n":"Steel","x":[["AONESTEELS","S"],["BEDMUTHA","S"],["BEEKAY","S"],["BELDING","S"],["ELECTHERM","S"],["GALLANTT","M"],["GOODLUCK","M"],["GPIL","M"],["JAIBALAJI","M"],["JINDALSTEL","L"],["JSIPL","S"],["JSL","L"],["JSWSTEEL","L"],["KAMDHENU","S"],["KSL","S"],["LLOYDSME","L"],["MAHASTEEL","S"],["MAHSEAMLES","M"],["MANAKSTEEL","S"],["MSPL","S"],["MWL","S"],["NSLNISP","M"],["PANCHMAHQ","S"],["PENIND","S"],["PRAKASH","S"],["RSL","S"],["SAIL","L"],["SALSTEEL","S"],["SAMBHV","S"],["SANDUMA","M"],["SARDAEN","M"],["SBCL","M"],["SCANSTL","S"],["SHBAJRG","S"],["SHIVAUM","S"],["SHYAMMETL","L"],["SMLT","S"],["SUNFLAG","M"],["SURAJLTD","S"],["TATASTEEL","L"],["TIIL","M"],["VASWANI","S"],["VISL","M"],["VMSTMT","S"],["VRAJ","S"],["VSSL","S"],["VSTL","S"]]},{"n":"Coal & Mining","x":[["20MICRONS","S"],["ASHAPURMIN","S"],["BHARATCOAL","M"],["COALINDIA","L"],["DECNGOLD","S"],["GMDCLTD","M"],["KIOCL","M"],["MCL","S"],["MOIL","S"],["NMDC","L"],["ORISSAMINE","S"],["SOUTHWEST","S"]]},{"n":"Pipes & Tubes","x":[["CUBEXTUB","S"],["GANDHITUBE","S"],["HARIOMPIPE","S"],["HITECH","S"],["JTLIND","S"],["MANINDS","M"],["OILCOUNTUB","S"],["RATNAVEER","S"],["SCODATUBES","S"],["VENUSPIPES","S"],["WELSPLSOL","S"]]},{"n":"Aluminium, Copper & Zinc","x":[["ARFIN","S"],["BCSSL","S"],["HINDALCO","L"],["HINDCOPPER","L"],["HINDZINC","L"],["MAANALU","S"],["MANAKALUCO","S"],["NATIONALUM","L"],["VEDL","L"]]},{"n":"Metal Recycling & Trading","x":[["BAHETI","S"],["GRAVITA","M"],["JAINREC","M"],["MMP","S"],["MUKANDLTD","S"],["NILE","S"],["POCL","S"],["RAJRATAN","S"]]},{"n":"Wires & Conductors","x":[["BANSALWIRE","S"],["BHARATWIRE","S"],["DPWIRES","S"],["KSHINTL","M"],["PRECWIRE","M"],["RAMRAT","S"],["USHAMART","M"]]},{"n":"Fabrication, PEB & Coated Metals","x":[["AEROFLEX","M"],["DEEDEV","S"],["EPACKPEB","S"],["EUROBOND","S"],["INTERARCH","S"],["MANAKCOAT","S"]]},{"n":"Ferro Alloys","x":[["IMFA","M"],["KIRLFER","M"],["MAITHANALL","S"],["SHAHALLOYS","S"],["VISACHROME","S"]]},{"n":"Others / Unclassified","x":[["AEROENTER","S"],["ARDEE","S"],["BLEL","S"],["CMLL","S"],["JAYNECOIND","M"],["POEL","S"],["VAML","L"]]}]},{"n":"Auto","s":[{"n":"Body, Electricals & Electronics Components","x":[["ACGL","S"],["ASAL","S"],["ASKAUTOLTD","M"],["BELRISE","L"],["BHARATSE","S"],["DIVGIITTS","S"],["ENKEIWHEL","S"],["FIEMIND","M"],["FRONTSP","S"],["GABRIEL","L"],["JBMA","M"],["JMA","S"],["KROSS","S"],["LGBBROSLTD","M"],["LUMAXIND","M"],["LUMAXTECH","M"],["MENNPIS","S"],["MINDACORP","M"],["MOTHERSON","L"],["MSUMI","L"],["MUNJALAU","S"],["MUNJALSHOW","S"],["NDRAUTO","S"],["OMAXAUTO","S"],["PPAP","S"],["PRICOLLTD","M"],["REMSONSIND","S"],["RML","S"],["SANDHAR","S"],["SHARDAMOTR","M"],["SJS","M"],["SSWL","M"],["SUBROS","S"],["SUPRAJIT","M"],["TENNIND","M"],["UCAL","S"],["VARROC","M"],["WHEELS","M"]]},{"n":"Engine, Transmission & Drivetrain Components","x":[["ADROITIND","S"],["AUTOAXLES","S"],["AUTOIND","S"],["BHARATGEAR","S"],["BOSCHLTD","L"],["CRAFTSMAN","L"],["ENDURANCE","L"],["FMGOETZE","S"],["GNA","S"],["IPRINGLTD","S"],["JAMNAAUTO","M"],["JTEKTINDIA","S"],["MENONBE","S"],["PRECAM","S"],["RACLGEAR","S"],["RICOAUTO","S"],["ROLEXRINGS","M"],["SANSERA","L"],["SHRIPISTON","M"],["SINTERCOM","S"],["SONACOMS","L"],["SUNDRMBRAK","S"],["SUNDRMFAST","L"],["TALBROAUTO","S"],["UNOMINDA","L"],["ZFCVINDIA","L"],["ZFSTEERING","S"]]},{"n":"Two & Three-Wheelers, EVs","x":[["ATHERENERG","L"],["ATULAUTO","S"],["BAJAJ-AUTO","L"],["EICHERMOT","L"],["HEROMOTOCO","L"],["HEROMOTORS","M"],["MERCURYEV","S"],["OLAELEC","M"],["OLECTRA","M"],["TVSMOTOR","L"]]},{"n":"Cars, SUVs & Commercial Vehicles","x":[["ASHOKLEY","L"],["FORCEMOT","L"],["HYUNDAI","L"],["M&M","L"],["MARUTI","L"],["SMLMAH","M"],["TMCV","L"],["TMPV","L"]]},{"n":"Tyres & Rubber Products","x":[["APOLLOTYRE","L"],["BALKRISIND","L"],["CEATLTD","M"],["GOODYEAR","S"],["JKTYRE","M"],["MRF","L"],["TOLINS","S"],["TVSSRICHAK","S"]]},{"n":"Auto Dealers & Holding Cos","x":[["BANCOINDIA","M"],["BBTC","M"],["IMPAL","S"],["INDNIPPON","S"],["JAYBARMARU","S"]]},{"n":"Batteries","x":[["ARE&M","M"],["EXIDEIND","L"],["HBLENGINE","L"]]},{"n":"Tractors & Farm Equipment","x":[["ESCORTS","L"],["VSTTILLERS","S"]]}]},{"n":"Services","s":[{"n":"Hotels & Hospitality","x":[["ADVANIHOTR","S"],["ADVENTHTL","S"],["AHLEAST","S"],["AHLWEST","S"],["APOLSINHOT","S"],["ASIANHOTNR","S"],["BRIGHOTEL","S"],["CHALET","M"],["EIHAHOTELS","S"],["EIHOTEL","M"],["GRAVISSHO","S"],["INDHOTEL","L"],["ITCHOTELS","L"],["ITDC","M"],["JUNIPER","S"],["KAMATHOTEL","S"],["LEMONTREE","M"],["MHRIL","S"],["ORIENTHOT","S"],["PARKHOTELS","S"],["PRAVEG","S"],["RHL","S"],["ROHLTD","S"],["SAMHI","S"],["SINCLAIR","S"],["SPECIALITY","S"],["TAJGVK","S"],["THELEELA","L"],["VENTIVE","M"],["VHLTD","S"]]},{"n":"Trading & Distribution","x":[["ABANSENT","S"],["ADANIENT","L"],["AUGMONT","M"],["MAHESHWARI","S"],["MANAKSIA","S"],["METROGLOBL","S"],["MKEXIM","S"],["MMTC","M"],["RACE","S"],["REDINGTON","L"],["REFEX","S"],["SGMART","M"],["SICAGEN","S"],["STCINDIA","S"]]},{"n":"Education & Training","x":[["ARIS","S"],["CLEDUCATE","S"],["CPEDU","S"],["CRIZAC","S"],["EBGNG","M"],["JARO","S"],["PWL","L"]]},{"n":"Logistics & Business Support","x":[["AEGISLOG","L"],["ANIKINDS","S"],["BUILDPRO","S"],["HBESD","S"],["NRL","S"],["SEIL","S"]]},{"n":"Fashion Retail","x":[["ARVINDFASN","S"],["PERNIASPOP","S"]]},{"n":"Others / Unclassified","x":[["BNAGROCHEM","S"],["DVL","S"],["FABTECH","S"],["FISCHER","S"],["GLOBAL","S"],["HALDER","S"],["JKIPL","S"],["NATIONSTD","S"],["ONIXSOLAR","S"],["ORICONENT","S"],["OSWALAGRO","S"],["PREMIERENE","L"],["SCILAL","S"],["SIGIND","S"],["TAINWALCHM","S"]]},{"n":"Others","x":[["BMWVENTLTD","S"],["BYKE","S"],["HONASA","M"],["KDGREEN","S"],["KOTHARIPRO","S"],["KOTIC","S"],["LAHOTIOV","S"],["LLOYDSENT","M"],["UNIENTER","S"],["VERANDA","S"]]}]},{"n":"Building Materials","s":[{"n":"Cement","x":[["ACC","L"],["ACL","S"],["AMBUJACEM","L"],["BIRLACORPN","M"],["DALBHARAT","L"],["DECCANCE","S"],["HEIDELBERG","S"],["INDIACEM","M"],["JKCEMENT","L"],["JKLAKSHMI","M"],["JSWCEMENT","M"],["KCP","S"],["MANGLMCEM","S"],["NUVOCO","M"],["ORIENTCEM","S"],["RAMCOCEM","M"],["SAGCEM","S"],["SAURASHCEM","S"],["SHREDIGCEM","S"],["SHREECEM","L"],["STARCEMENT","M"],["ULTRACEMCO","L"]]},{"n":"Paper & Paperboard","x":[["ANDHRAPAP","S"],["EMAMIPAP","S"],["JKPAPER","M"],["NRAIL","S"],["PAKKA","S"],["PDMJEPAPER","S"],["RUCHIRA","S"],["SATIA","S"],["SESHAPAPER","S"],["STARPAPER","S"],["TNPL","S"],["WSTCSTPAPR","S"]]},{"n":"Tiles, Ceramics & Sanitaryware","x":[["ASIANTILES","S"],["CERA","M"],["KAJARIACER","M"],["NITCO","S"],["ORIENTBELL","S"],["ORIENTCER","S"],["SIRCA","S"],["SOMANYCERA","S"],["VARMORA","S"]]},{"n":"Glass, Refractories & Ceramics","x":[["BOROLTD","S"],["BORORENEW","M"],["BOROSCI","S"],["HALDYNGL","S"],["IFGLEXPOR","S"],["LAOPALA","S"],["RHIM","M"],["VESUVIUS","M"]]},{"n":"Plywood, Laminates & Panels","x":[["AIROLAM","S"],["ARCHIDPLY","S"],["CENTURYPLY","M"],["GREENLAM","M"],["GREENPANEL","S"],["GREENPLY","S"],["STYLAMIND","M"]]},{"n":"Roofing, Bricks & Concrete Products","x":[["APCL","S"],["ASAHIINDIA","L"],["BIGBLOC","S"],["EVERESTIND","S"],["NCLIND","S"],["RAMCOIND","S"],["SAHYADRI","S"]]},{"n":"Paints","x":[["ASIANPAINT","L"],["BERGEPAINT","L"],["INDIGOPNTS","S"],["JSWDULUX","S"],["KANSAINER","M"],["SHALPAINTS","S"]]},{"n":"Others","x":[["BIRLANU","S"],["EUROPRATIK","S"],["KUANTUM","S"],["PRSMJOHNSN","M"],["RPEL","M"],["SAPPL","S"],["SEJALLTD","S"],["SEKURITIND","S"],["SHREYANIND","S"],["VISAKAIND","S"],["WIPL","S"]]}]},{"n":"Textiles","s":[{"n":"Spinning & Yarn","x":[["AASTHA","S"],["ABCOTS","S"],["ALPINETEX","S"],["AMBIKCO","S"],["AYMSYNTEX","S"],["BANSWRAS","S"],["BTTL","S"],["CENTENKA","S"],["DCMNVL","S"],["DCMSIL","S"],["DONEAR","S"],["GANECOS","S"],["JINDWORLD","S"],["KUSUMGAR","M"],["LAGNAM","S"],["LAMBODHARA","S"],["NAHARINDUS","S"],["NAHARSPING","S"],["NITINSPIN","S"],["PASHUPATI","S"],["PRECOT","S"],["RSWM","S"],["SANGAMIND","S"],["SHIVATEX","S"],["SPORTKING","S"],["SRTL","S"],["SSDL","S"],["SURYALA","S"],["SURYALAXMI","S"],["SUTLEJTEX","S"],["UNITEDPOLY","S"],["VTMLTD","S"]]},{"n":"Fabrics, Denim & Suiting","x":[["ARVIND","M"],["BOMDYEING","S"],["BORANA","S"],["BSL","S"],["DIGJAMLMTD","S"],["GLOSTERLTD","S"],["GRASIM","L"],["LOYALTEX","S"],["LUXIND","S"],["MARALOVER","S"],["MODTHREAD","S"],["ORBTEXP","S"],["PREMCO","S"],["RAYMONDLSL","S"],["RUBYMILLS","S"],["SANATHAN","S"],["SBC","S"],["VTL","M"]]},{"n":"Apparel & Fashion Brands","x":[["CANTABIL","S"],["CHEVIOT","S"],["FAZE3Q","S"],["GOCOLORS","S"],["INDIANCARD","S"],["LEMERITE","S"],["MALLCOM","S"],["MANOMAY","S"],["MHLXMIRU","S"],["MONTECARLO","S"],["PDSL","M"],["RUPA","S"],["SIYSIL","S"],["SONA","S"],["SWARAJ","S"],["VARDHACRLC","S"],["VGL","S"]]},{"n":"Synthetic Fibres & Polyester","x":[["FILATEX","S"],["GARFIBRES","M"],["GHCLTEXTIL","S"],["GINNIFILA","S"],["HIMATSEIDE","S"],["INDORAMA","S"],["JINDALPOLY","S"],["PASUPTAC","S"],["SARLAPOLY","S"]]},{"n":"Home Textiles & Furnishings","x":[["ICIL","M"],["SALONA","S"],["SWANCORP","M"],["VIRAT","S"],["WAKEFIT","S"],["WELSPUNLIV","L"]]}]},{"n":"Miscellaneous","s":[{"n":"Diversified Manufacturing","x":[["3MINDIA","L"],["ALPHAGEO","S"],["ASPINWALL","S"],["BALMLAWRIE","S"],["DCMSHRIRAM","M"],["GOCLCORP","S"],["HINDCOMPOS","S"],["KMEW","S"],["KOKUYOCMLN","S"],["MODIRUBBER","S"],["NAVA","M"],["RAIN","M"],["SEAMECLTD","S"]]},{"n":"Staffing & Outsourced Services","x":[["AARVI","S"],["BLUSPRING","S"],["CMSINFO","S"],["INNOVISION","S"],["KAPSTON","S"],["KRYSTAL","S"],["MEDIASSIST","S"],["QUESS","M"],["RADIANTCMS","S"],["SFCTECH","L"],["SIS","M"],["TEAMLEASE","S"],["UDS","S"]]},{"n":"Infrastructure & Public Enterprises","x":[["CMPDI","M"],["DREDGECORP","S"],["GMRAIRPORT","L"],["JITFINFRA","S"],["MITCON","S"],["NAVNETEDUL","S"],["NBCC","L"],["ORIRAIL","S"],["RITES","M"],["SIGNPOST","S"]]},{"n":"Consumer Products & Brands","x":[["CROWN","S"],["DOMS","M"],["ENNATURE","S"],["FLAIR","S"],["HORIZONIND","M"],["IGLSPIRITS","S"],["LINC","S"],["MOMSBELIEF","S"],["REGAAL","S"]]},{"n":"Publishing, Advertising & Online Services","x":[["BRIGHTOUTD","S"],["IGIL","M"],["MATRIMONY","S"],["REPRO","S"],["SCHAND","S"]]},{"n":"Clean Energy, EV & Recycling","x":[["CMRGREEN","S"],["ECORECO","S"],["ECOSMOBLTY","S"],["INOXGREEN","S"]]},{"n":"Travel & Leisure","x":[["DELTACORP","S"],["DREAMFOLKS","S"],["RENTOMOJO","M"],["THOMASCOOK","M"]]},{"n":"Equipment Rental & Bulk Logistics","x":[["GANESHBE","S"],["SANGHVIMOV","S"],["TARACHAND","S"]]},{"n":"Waste Management & Clean Energy","x":[["AWHCL","S"],["EKI","S"],["TRUALT","S"]]},{"n":"Others / Unclassified","x":[["CONFIPET","S"],["DJML","S"],["ELEVATE","M"],["EMPIND","S"],["IIRM","S"],["LEAPIND","M"],["MAFATIND","S"],["MAJESAUT","S"],["PROZONER","S"],["PTL","S"],["REPL","S"],["STEAMHOUSE","S"],["TTKHLTCARE","S"]]}]},{"n":"Transportation","s":[{"n":"Logistics & Freight Forwarding","x":[["BLUEDART","M"],["CONCOR","L"],["DELHIVERY","L"],["GATEWAY","S"],["GLOBALVECT","S"],["GLOTTIS","S"],["GPPL","M"],["MAHLOG","S"],["NAVKARCORP","S"],["OBCL","S"],["OMFREIGHT","S"],["RIIL","S"],["SHREEJISPG","M"],["SICALLOG","S"],["SKYWAYS","S"],["SNOWMAN","S"],["SVLL","S"],["SWANDEF","M"],["TCI","M"],["TCIEXP","S"],["TIGERLOGS","S"],["TRANSWORLD","S"],["TVSSCS","M"],["VRLLOG","M"],["WCIL","S"]]},{"n":"Ports, Shipping & Terminals","x":[["ADANIPORTS","L"],["AEGISVOPAK","L"],["GICL","S"],["JSWINFRA","L"],["SCI","M"]]},{"n":"Tech-enabled Freight & Delivery Platforms","x":[["AVG","S"],["BLACKBUCK","M"],["MEESHO","L"],["SHADOWFAX","M"]]},{"n":"Railway Services","x":[["IRCTC","L"],["RAILTEL","M"],["RITCO","S"]]},{"n":"Airlines","x":[["INDIGO","L"]]},{"n":"Others / Unclassified","x":[["RAYMOND","M"],["TOTAL","S"]]}]},{"n":"Energy","s":[{"n":"Petrochemicals, Specialty Oils & Carbon","x":[["AGARIND","S"],["DCW","S"],["GANDHAR","S"],["GOACARBON","S"],["KOTHARIPET","S"],["KOTYARK","S"],["MANALIPETC","S"],["PANAMAPET","S"],["PRABHA","S"],["SPLPETRO","M"],["STYRENIX","S"],["TNPETRO","S"]]},{"n":"Gas Distribution & Transmission","x":[["ATGL","L"],["GAIL","L"],["GSPLTRANS","S"],["GUJENERGY","L"],["IGL","L"],["IRMENERGY","S"],["MGL","M"],["PETRONET","L"]]},{"n":"Oil Refining & Marketing","x":[["BPCL","L"],["CHENNPETRO","L"],["HINDPETRO","L"],["IOC","L"],["MRPL","L"],["RELIANCE","L"]]},{"n":"Oilfield Services & Drilling","x":[["ASIANENE","S"],["DEEPINDS","S"],["DOLPHIN","S"],["JINDRILL","S"],["SOTL","S"],["VOGL","M"]]},{"n":"Upstream Oil & Gas","x":[["HINDOILEXP","S"],["OIL","L"],["ONGC","L"]]},{"n":"Others / Unclassified","x":[["ANTELOPUS","S"],["BEPL","S"]]}]},{"n":"Aerospace & Defence","s":[{"n":"Defence Electronics & Systems","x":[["APOLLO","M"],["ASTRAMICRO","M"],["AVANTEL","S"],["AXISCADES","M"],["CENTUM","M"],["CYIENTDLM","M"],["DATAPATTNS","L"],["IDEAFORGE","S"],["ITI","L"],["MTARTECH","M"],["ROSSTECH","M"],["SIGMAADV","M"],["TANAA","S"],["TONBO","M"],["ZENTEC","M"]]},{"n":"Aerospace Components & Engineering","x":[["AEQUS","M"],["AZAD","M"],["DCXINDIA","S"],["DYNAMATECH","M"],["JAYKAY","S"],["KAVDEFENCE","S"],["SIKA","S"],["UNIMECH","M"]]},{"n":"Defence PSUs & Shipbuilding","x":[["BDL","L"],["BEL","L"],["BEML","M"],["COCHINSHIP","L"],["GRSE","L"],["HAL","L"],["MAZDOCK","L"],["MIDHANI","M"]]},{"n":"Ammunition, Explosives & Small Arms","x":[["KRISHNADEF","S"],["NIBE","S"],["PARAS","M"],["PREMEXPLN","S"],["SOLARINDS","L"]]}]},{"n":"Bank","s":[{"n":"Mid & Small Private Banks","x":[["BANDHANBNK","L"],["CSBBANK","M"],["CUB","L"],["DCBBANK","M"],["DHANBANK","S"],["FEDERALBNK","L"],["J&KBANK","M"],["KARURVYSYA","L"],["KTKBANK","M"],["RBLBANK","L"],["SOUTHBANK","M"],["TMB","M"]]},{"n":"Public Sector Banks","x":[["BANKBARODA","L"],["BANKINDIA","L"],["CANBK","L"],["IDBI","L"],["INDIANB","L"],["MAHABANK","L"],["PNB","L"],["SBIN","L"],["UNIONBANK","L"]]},{"n":"Small Finance Banks","x":[["AUBANK","L"],["CAPITALSFB","S"],["EQUITASBNK","M"],["ESAFSFB","S"],["JSFB","S"],["SURYODAY","S"],["UJJIVANSFB","M"]]},{"n":"Large Private Banks","x":[["AXISBANK","L"],["HDFCBANK","L"],["ICICIBANK","L"],["IDFCFIRSTB","L"],["INDUSINDBK","L"],["KOTAKBANK","L"]]},{"n":"Payments Banks","x":[["FINOPB","S"]]}]},{"n":"Plastic products","s":[{"n":"Industrial Plastics & Films","x":[["ARROWGREEN","S"],["BLSPOLY","S"],["BRIGHTBR","S"],["CPL","S"],["DHABRIYA","S"],["ESFL","S"],["KINGFA","M"],["MAHEPC","S"],["MANIKA","S"],["RESPONIND","S"],["SHAILY","M"],["TIMETECHNO","M"]]},{"n":"Plastic Pipes & Fittings","x":[["APOLLOPIPE","S"],["ASTRAL","L"],["FINPIPE","M"],["JAICORPLTD","S"],["KRITI","S"],["PPL","S"],["PRINCEPIPE","S"],["SUPREMEIND","L"],["TEXMOPIPES","S"]]},{"n":"Consumer Plastics & Luggage","x":[["ALLTIME","S"],["NILKAMAL","S"],["PREMIERPOL","S"],["SAFARI","M"],["STUDDS","S"],["VIPIND","S"]]}]},{"n":"Media","s":[{"n":"Films, Studios & Exhibition","x":[["AQYLON","S"],["CINELINE","S"],["IMAGICAA","S"],["MUKTAARTS","S"],["PANORAMA","S"],["PVRINOX","M"],["SHEMAROO","S"],["TIPSFILMS","S"],["UFO","S"]]},{"n":"Television & Broadcasting","x":[["BALAJITELE","S"],["HMVL","S"],["NDTV","S"],["SUNTV","L"],["TVTODAY","S"],["ZEEL","M"]]},{"n":"Advertising & Leisure Parks","x":[["NICCOPAR","S"],["RKSWAMY","S"],["SUNSHINE","S"],["WONDERLA","S"]]},{"n":"Print & Publishing","x":[["DBCORP","S"],["JAGRAN","S"],["SANDESH","S"]]},{"n":"Music","x":[["SAREGAMA","M"],["TIPSMUSIC","M"]]},{"n":"Cable & Digital Distribution","x":[["GTPL","S"]]},{"n":"Radio","x":[["ENIL","S"]]}]},{"n":"Power & Utilities","s":[{"n":"Renewable Energy & Hydro","x":[["ADANIGREEN","L"],["BHAGYANGR","S"],["CLEANMAX","M"],["HEGAM","M"],["KPIGREEN","M"],["NHPC","L"],["NTPCGREEN","L"],["SJVN","L"],["SOLARWORLD","S"],["SWASTIKAIN","S"],["WAAREERTL","M"]]},{"n":"Thermal Power Generation","x":[["ADANIPOWER","L"],["BFUTILITIE","S"],["CESC","M"],["GIPCL","S"],["JSWENERGY","L"],["NLCINDIA","L"],["NTPC","L"],["TATAPOWER","L"],["TORNTPOWER","L"],["VEDPOWER","M"]]},{"n":"Power Trading","x":[["PTC","S"],["UEL","S"]]},{"n":"Transmission & Distribution","x":[["ADANIENSOL","L"],["POWERGRID","L"]]}]},{"n":"Castings, Forgings & Fasteners","s":[{"n":"Castings","x":[["AIAENG","L"],["ALICON","S"],["ELECTCAST","S"],["INVPRECQ","S"],["NELCAST","S"],["PTCIL","L"],["SGIL","S"],["STEELCAS","S"],["SUNCLAY","S"]]},{"n":"Forgings","x":[["BALUFORGE","M"],["BHARATFORG","L"],["CIEINDIA","M"],["HAPPYFORGE","M"],["KALYANIFRG","S"],["MMFL","S"],["PRADPME","S"],["RKFORGE","M"],["TIRUPATIFL","S"]]},{"n":"Precision Components & Tooling","x":[["DCM","S"],["GALAPREC","S"],["KENNAMET","M"],["STERTOOLS","S"]]}]},{"n":"Readymade Garments/Apparels","s":[{"n":"Branded & Ethnic Apparel","x":[["BELLACASA","S"],["IRISDOREME","S"],["MANYAVAR","M"],["THOMASCOTT","S"],["ZODIACLOTH","S"]]},{"n":"Garment Exporters","x":[["GOKEX","M"],["KITEX","S"],["KPRMILL","L"],["PGIL","M"],["SPAL","S"]]},{"n":"Innerwear & Athleisure","x":[["DOLLAR","S"],["KKCL","S"],["PAGEIND","L"]]}]},{"n":"Telecom","s":[{"n":"Telecom Equipment & Networking","x":[["HFCL","L"],["OPTIEMUS","M"],["SUYOG","S"],["TEJASNET","M"],["UMIYA-MRO","S"]]},{"n":"Towers & Satellite Communication","x":[["INDUSTOWER","L"],["NELCO","S"],["PACEDIGITK","S"]]}]},{"n":"Telecom-Service","s":[{"n":"Enterprise Data & Value-Added Services","x":[["JPL","L"],["ONMOBILE","S"],["STLNETWORK","S"],["TATACOMM","L"],["TTML","M"]]},{"n":"Wireless Operators","x":[["BHARTIARTL","L"],["BHARTIHEXA","L"]]}]},{"n":"Co-Working","s":[{"n":"Flexible Workspaces","x":[["AWFIS","S"],["DEVX","S"],["INDIQUBE","S"],["SMARTWORKS","M"],["WEWORK","M"]]}]}];
 const CAPN={L:'Largecap',M:'Midcap',S:'Smallcap'};
-const state={sector:null,caps:new Set(['L','M','S']),q:'',open:new Set(),period:'w',sort:'o',subsort:'size',gn:10};
+const store={get(k,d){try{const v=JSON.parse(localStorage.getItem('sa.'+k));return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem('sa.'+k,JSON.stringify(v))}catch(e){}}};
+// Time frames: "main" ranks strength, "fast" vs "slow" measures whether it is speeding up.
+const HZ={
+  short:{label:'Short',main:'w',fast:'w',slow:'m',about:'the last week',tip:'Ranks by 1-week returns. Catches new moves early, but is noisy.'},
+  medium:{label:'Medium',main:'q',fast:'m',slow:'q',about:'the last 3 months',tip:'Ranks by 3-month returns. Confirms moves that have lasted.'},
+  long:{label:'Long',main:'h',fast:'q',slow:'h',about:'the last 6 months',tip:'Ranks by 6-month returns. The big-picture leaders.'}
+};
+const PAGES=['screener','rotation','watchlist','guide','compare'];
+const savedHz=store.get('hz','medium');
+const state={sector:null,caps:new Set(['L','M','S']),q:'',open:new Set(),period:'w',sort:'o',subsort:'size',gn:10,
+  page:'sectors',hz:HZ[savedHz]?savedHz:'medium',flags:new Set(store.get('flags',[])),
+  scr:{preset:'all',sec:'',sub:'',sort:'r',dir:-1,limit:100},rot:'sec',cmp:new Set()};
+const H=()=>HZ[state.hz];
 const PD=(typeof PERF!=='undefined'&&PERF&&PERF.d)?PERF.d:null;
+if(!PD){state.scr.sort='s';state.scr.dir=1}
 const PLAB={w:'1 Week',m:'1 Month',q:'3 Months',h:'6 Months'};
 const TK={};DATA.forEach(sec=>sec.s.forEach(sub=>sub.x.forEach(t=>{TK[t[0]]={sub:sub.n,sec:sec.n,cap:t[1]}})));
 const fmtPct=v=>(v>0?'+':'')+v.toFixed(2)+'%';
+const fmtDate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
 function chipTitle(sym){
   const r=PD&&PD[sym];if(!r)return '';
   return ' title="'+['w','m','q','h'].map(k=>PLAB[k]+' '+(r[k]==null?'n/a':fmtPct(r[k]))).join(' | ')+'"';
 }
 const PK=['w','m','q','h'];
-const PSH={w:'1W',m:'1M',q:'3M',h:'6M',o:'Overall'};
+const PSH={w:'1W',m:'1M',q:'3M',h:'6M',o:'Overall',S:'Strength'};
 function med(a){a=a.slice().sort((x,y)=>x-y);const n=a.length;return n?(n%2?a[(n-1)/2]:(a[n/2-1]+a[n/2])/2):null}
 function aggr(list){
   const o={n:0};if(!PD)return o;
@@ -177,37 +241,278 @@ function pmHTML(a){
   if(!PD||!a.n)return '';
   return '<span class="pm" title="Median stock return">'+PK.map(k=>'<span><i>'+PSH[k]+'</i>'+pc(a[k])+'</span>').join('')+'</span>';
 }
-function sectorTable(secs){
-  const rows=secs.map(sec=>{
-    const l=sec.s.flatMap(y=>y.x).filter(t=>state.caps.has(t[1]));
-    return {sec,a:aggr(l)};
-  }).filter(r=>r.a.n);
-  if(!rows.length)return '';
-  const k=state.sort;
-  rows.sort((x,y)=>(y.a[k]==null?-1e9:y.a[k])-(x.a[k]==null?-1e9:x.a[k]));
-  let h='<section class="perf" aria-label="Sector performance"><div class="perf-h"><div><div class="perf-t">Sector performance</div><div class="perf-asof">Median stock return in each sector. Overall is the average of the four periods. Click a column to rank by it.</div></div></div><div class="tw"><table class="st"><thead><tr><th>Sector</th><th>Stocks</th>'+
+
+/* ---------- Strength, status and ratings (worked out in the browser from perf.js) ---------- */
+const QT={Leading:'Strong, and still improving.',Gaining:'Below average, but improving.',Fading:'Still strong, but slowing down.',Lagging:'Weak, and not improving yet.'};
+const TIPS={
+  strength:()=>'How this group’s median stock return over '+H().about+' ranks against every other group. 100 is the strongest, 0 the weakest.',
+  status:()=>'Leading: strong and improving. Gaining: below average but improving. Fading: strong but slowing. Lagging: weak and not improving. Improving means its '+PSH[H().fast]+' rank is better than its '+PSH[H().slow]+' rank.',
+  rating:()=>'1 to 99: how the stock’s return over '+H().about+' ranks against every other stock here. 90 means it beat about 90% of them.',
+  mood:()=>'Share of stocks in your market-cap filter that are up over '+H().about+'.',
+  mom:()=>'Its '+PSH[H().fast]+' rank minus its '+PSH[H().slow]+' rank. Above zero means the group is picking up speed.'
+};
+const tip=k=>' <span class="info" tabindex="0" title="'+esc(TIPS[k]())+'">?</span>';
+const qbadge=q=>q?'<span class="qd q-'+q+'" title="'+esc(QT[q])+'">'+q+'</span>':'<span>–</span>';
+const sbar=v=>v==null?'<span>–</span>':'<span class="sb"><i><b style="width:'+Math.max(2,v).toFixed(0)+'%"></b></i>'+Math.round(v)+'</span>';
+function joinAnd(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1]}
+function moodLabel(p){return p<20?'Very weak':p<40?'Weak':p<60?'Neutral':p<80?'Strong':'Very strong'}
+const RC={};
+function rateMap(k){
+  if(!PD)return {};if(RC[k])return RC[k];
+  const arr=Object.keys(TK).filter(s=>PD[s]&&PD[s][k]!=null).sort((a,b)=>PD[a][k]-PD[b][k]);
+  const n=arr.length,m={};arr.forEach((s,i)=>{m[s]=n>1?1+Math.round(i/(n-1)*98):50});
+  return RC[k]=m;
+}
+function pctRank(vals){
+  const idx=vals.map((v,i)=>[v,i]).filter(x=>x[0]!=null).sort((a,b)=>a[0]-b[0]),n=idx.length,out=vals.map(()=>null);
+  idx.forEach((x,r)=>{out[x[1]]=n>1?r/(n-1)*100:50});return out;
+}
+function quad(S,m){m=m||0;return S>=50?(m>=0?'Leading':'Fading'):(m>=0?'Gaining':'Lagging')}
+function groups(level){
+  if(!PD)return [];
+  const h=H(),rows=[];
+  DATA.forEach(sec=>{
+    if(level==='sec'){const l=sec.s.flatMap(y=>y.x).filter(t=>state.caps.has(t[1]));rows.push({sec,sub:null,list:l,a:aggr(l)})}
+    else sec.s.forEach(sub=>{const l=sub.x.filter(t=>state.caps.has(t[1]));rows.push({sec,sub,list:l,a:aggr(l)})});
+  });
+  const ok=rows.filter(r=>r.a.n>=(level==='sec'?1:2));
+  ok.forEach(r=>{r.p={}});
+  PK.forEach(k=>{const p=pctRank(ok.map(r=>r.a[k]));ok.forEach((r,i)=>{r.p[k]=p[i]})});
+  ok.forEach(r=>{r.S=r.p[h.main];const f=r.p[h.fast],s=r.p[h.slow];r.mom=(f==null||s==null)?null:f-s;r.quad=r.S==null?null:quad(r.S,r.mom)});
+  ok.filter(r=>r.S!=null).sort((a,b)=>b.S-a.S).forEach((r,i)=>{r.rank=i+1});
+  return ok;
+}
+let CUR={sec:[],sub:[],secBy:{},subBy:{}};
+function computeGroups(){
+  const sec=groups('sec'),sub=groups('sub'),secBy={},subBy={};
+  sec.forEach(r=>{secBy[slug(r.sec.n)]=r});sub.forEach(r=>{subBy[slug(r.sec.n)+'|'+r.sub.n]=r});
+  CUR={sec,sub,secBy,subBy};
+}
+
+/* ---------- Watchlist flags, TradingView copy, toast ---------- */
+const flagBtn=s=>{const on=state.flags.has(s);return '<button type="button" class="flag'+(on?' on':'')+'" data-flag="'+esc(s)+'" aria-pressed="'+on+'" title="'+(on?'Remove from watchlist':'Add to watchlist')+'">'+(on?'★':'☆')+'</button>'};
+function toggleFlag(s){
+  state.flags.has(s)?state.flags.delete(s):state.flags.add(s);store.set('flags',[...state.flags]);
+  const on=state.flags.has(s);
+  document.querySelectorAll('[data-flag]').forEach(b=>{if(b.dataset.flag!==s)return;b.classList.toggle('on',on);b.setAttribute('aria-pressed',String(on));b.textContent=on?'★':'☆';b.title=on?'Remove from watchlist':'Add to watchlist'});
+  const c=$('#wlc');if(c)c.textContent=state.flags.size||'';
+  toast(on?s+' added to your watchlist.':s+' removed from your watchlist.');
+  if(state.page==='watchlist')render();
+}
+const COPY={};
+let SHOWN=[];
+const tvSym=s=>'NSE:'+s.replace(/[^A-Za-z0-9_]/g,'_');
+const copyBtn=(key,label)=>'<button type="button" class="btn2" data-copy="'+key+'" title="Copies the list as NSE:SYMBOL, NSE:SYMBOL. Paste it into a TradingView watchlist.">'+(label||'Copy for TradingView')+'</button>';
+async function copyText(t){
+  try{await navigator.clipboard.writeText(t);return true}catch(e){}
+  const a=document.createElement('textarea');a.value=t;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();
+  let ok=false;try{ok=document.execCommand('copy')}catch(e){}a.remove();return ok;
+}
+async function doCopy(key){
+  const l=COPY[key]||[];if(!l.length)return toast('Nothing to copy, the list is empty.');
+  const ok=await copyText(l.map(tvSym).join(', '));
+  toast(ok?'Copied '+l.length+' stock'+(l.length>1?'s':'')+'. Paste into a TradingView watchlist.':'Could not copy. Your browser blocked clipboard access.');
+}
+function toast(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>{t.hidden=true},3500)}
+
+/* ---------- Overview sections ---------- */
+function sectorTable(){
+  const rows=CUR.sec.slice();if(!rows.length)return '';
+  const k=state.sort,val=r=>k==='S'?r.S:r.a[k];
+  rows.sort((x,y)=>(val(y)==null?-1e9:val(y))-(val(x)==null?-1e9:val(x)));
+  const n=state.cmp.size;
+  let h='<section class="perf" aria-label="Sector performance"><div class="perf-h"><div><div class="perf-t">Sector performance</div><div class="perf-asof">Median stock return in each sector. Overall is the average of the four periods. Strength and status use the '+H().label.toLowerCase()+'-term time frame. Click a column to rank by it.</div></div></div><div class="tw"><table class="st"><thead><tr><th>Sector</th><th>Stocks</th>'+
+    '<th><button type="button" data-sort="S" aria-pressed="'+(k==='S')+'">Strength</button>'+tip('strength')+'</th><th>Status'+tip('status')+'</th>'+
     ['w','m','q','h','o'].map(p=>'<th><button type="button" data-sort="'+p+'" aria-pressed="'+(p===k)+'">'+PSH[p]+'</button></th>').join('')+'</tr></thead><tbody>';
   rows.forEach((r,i)=>{
-    h+='<tr><td><span class="rk">'+(i+1)+'</span><button type="button" data-go="'+slug(r.sec.n)+'">'+esc(r.sec.n)+'</button></td><td>'+r.a.n+'</td>'+
+    const sl=slug(r.sec.n);
+    h+='<tr><td><input type="checkbox" data-cmp="'+sl+'" aria-label="Select '+esc(r.sec.n)+' to compare"'+(state.cmp.has(sl)?' checked':'')+'> <span class="rk">'+(i+1)+'</span><button type="button" data-go="'+sl+'">'+esc(r.sec.n)+'</button></td><td>'+r.a.n+'</td><td>'+sbar(r.S)+'</td><td>'+qbadge(r.quad)+'</td>'+
       ['w','m','q','h'].map(p=>'<td>'+pc(r.a[p])+'</td>').join('')+'<td class="ov">'+pc(r.a.o)+'</td></tr>';
   });
-  return h+'</tbody></table></div></section>';
+  h+='</tbody></table></div><div class="selbar">'+(n?'<span><b>'+n+'</b> selected</span><button type="button" class="btn2" data-compare="1"'+(n<2?' disabled':'')+'>Compare side by side</button><button type="button" class="btn2" data-cmpclear="1">Clear</button>':'<span>Tick 2 to 6 sectors to compare them side by side.</span>')+'</div></section>';
+  return h;
+}
+function pulseHTML(pool){
+  const mk=H().main,v=pool.map(t=>PD[t[0]]&&PD[t[0]][mk]).filter(x=>x!=null);if(!v.length)return '';
+  const p=v.filter(x=>x>0).length/v.length*100;
+  const wv=pool.map(t=>PD[t[0]]&&PD[t[0]].w).filter(x=>x!=null),wu=wv.filter(x=>x>0).length,wd=wv.filter(x=>x<0).length;
+  const ts=CUR.sec.filter(r=>r.rank).sort((a,b)=>a.rank-b.rank).slice(0,3).map(r=>esc(r.sec.n));
+  const tb=CUR.sub.filter(r=>r.rank).sort((a,b)=>a.rank-b.rank).slice(0,3).map(r=>esc(r.sub.n));
+  const lead=CUR.sub.filter(r=>r.quad==='Leading').length,tot=CUR.sub.filter(r=>r.quad).length;
+  return '<section class="perf" aria-label="Market pulse"><div class="perf-h"><div><div class="perf-t">Market pulse</div><div class="perf-asof">'+H().label+'-term view, '+H().about+(PERF.asOf?' · close of '+fmtDate(PERF.asOf):'')+'</div></div></div>'+
+    '<p style="margin:0">'+(ts.length?'<b>'+joinAnd(ts)+'</b> '+(ts.length>1?'are':'is')+' leading the market over '+H().about+'. ':'')+(tb.length?'The strongest sub-sectors are '+joinAnd(tb)+'.':'')+'</p>'+
+    '<div class="pulse">'+
+      '<div class="stat"><div class="k">Market mood'+tip('mood')+'</div><div class="v">'+moodLabel(p)+'</div><div class="k">'+Math.round(p)+'% of stocks up over '+PSH[mk]+'</div></div>'+
+      '<div class="stat"><div class="k">Median stock, '+PSH[mk]+'</div><div class="v">'+pc(med(v))+'</div><div class="k">'+v.length.toLocaleString()+' stocks with price data</div></div>'+
+      '<div class="stat"><div class="k">This week</div><div class="v">'+wu+' <span class="k">up</span></div><div class="k">'+wd+' down over 1W</div></div>'+
+      '<div class="stat"><div class="k">Leading sub-sectors'+tip('status')+'</div><div class="v">'+lead+' <span class="k">of '+tot+'</span></div><div class="k">strong and still improving</div></div>'+
+    '</div></section>';
+}
+const subLink=(r,cls)=>'<button type="button"'+(cls?' class="'+cls+'"':'')+' data-go="'+slug(r.sec.n)+'" data-open="'+esc(slug(r.sec.n)+'|'+r.sub.n)+'">'+esc(r.sub.n)+'</button>';
+function topSubsHTML(){
+  const rows=CUR.sub.filter(r=>r.rank).sort((a,b)=>a.rank-b.rank).slice(0,10);if(!rows.length)return '';
+  const R=rateMap(H().main),mk=H().main;
+  COPY.topsubs=[...new Set(rows.flatMap(r=>r.list.map(t=>t[0])))].filter(s=>(R[s]||0)>=70).sort((a,b)=>R[b]-R[a]);
+  let h='<section class="perf" aria-label="Strongest sub-sectors"><div class="perf-h"><div><div class="perf-t">Strongest sub-sectors</div><div class="perf-asof">Ranked by strength over '+H().about+'. A sub-sector needs at least 2 stocks with price data.</div></div>'+copyBtn('topsubs','Copy strong stocks ('+COPY.topsubs.length+')')+'</div>'+
+    '<div class="tw"><table class="st"><thead><tr><th>Sub-sector</th><th>Stocks</th><th>Strength'+tip('strength')+'</th><th>Status'+tip('status')+'</th><th>'+PSH[mk]+' median</th></tr></thead><tbody>';
+  rows.forEach(r=>{h+='<tr><td><span class="rk">'+r.rank+'</span>'+subLink(r)+' <span class="sectag">· '+esc(r.sec.n)+'</span></td><td>'+r.a.n+'</td><td>'+sbar(r.S)+'</td><td>'+qbadge(r.quad)+'</td><td>'+pc(r.a[mk])+'</td></tr>'});
+  return h+'</tbody></table></div><p class="perf-asof" style="margin:8px 0 0">The copy button takes the stocks rated 70 or higher from these sub-sectors.</p></section>';
+}
+function shiftsHTML(){
+  const ok=CUR.sub.filter(r=>r.mom!=null&&r.S!=null);if(!ok.length)return '';
+  const up=ok.filter(r=>r.mom>=15).sort((a,b)=>b.mom-a.mom).slice(0,6),dn=ok.filter(r=>r.mom<=-15).sort((a,b)=>a.mom-b.mom).slice(0,6);
+  const li=(r,i)=>'<li><span class="rk">'+(i+1)+'</span><span>'+subLink(r,'lnk')+'<span class="ss">'+esc(r.sec.n)+'</span></span>'+qbadge(r.quad)+'<span class="rt '+(r.mom>=0?'pos':'neg')+'">'+(r.mom>0?'+':'')+Math.round(r.mom)+'</span></li>';
+  const col=(t,s,l)=>'<div><div class="perf-t" style="font-size:15px">'+t+'</div><div class="perf-asof" style="margin-bottom:6px">'+s+'</div>'+(l.length?'<ol class="gl">'+l.map(li).join('')+'</ol>':'<p class="empty" style="padding:8px 0">No big shifts right now.</p>')+'</div>';
+  return '<section class="perf" aria-label="Momentum shifts"><div class="perf-h"><div><div class="perf-t">Momentum shifts</div><div class="perf-asof">Sub-sectors whose '+PSH[H().fast]+' rank is far from their '+PSH[H().slow]+' rank.'+tip('mom')+'</div></div></div>'+
+    '<div class="cols2">'+col('Picking up speed','Recent rank well above the longer trend',up)+col('Losing steam','Recent rank well below the longer trend',dn)+'</div></section>';
 }
 function gainersHTML(pool){
   const k=state.period;
   let h='<section class="perf" aria-label="Top gainers"><div class="perf-h"><div><div class="perf-t">Top gainers</div>';
-  if(PD){const d=new Date(PERF.asOf+'T00:00:00');h+='<div class="perf-asof">Close of '+d.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})+', updated daily after market close</div>'}
+  if(PD){h+='<div class="perf-asof">Close of '+fmtDate(PERF.asOf)+', updated daily after market close</div>'}
   h+='</div><div class="pt" role="group" aria-label="Period">'+['w','m','q','h'].map(p=>'<button type="button" data-p="'+p+'" aria-pressed="'+(p===k)+'">'+PLAB[p]+'</button>').join('')+'</div></div>';
   if(!PD){return h+'<p class="empty">Price data has not been generated yet. Run the update workflow once to create perf.js.</p></section>'}
+  const R=rateMap(H().main);
   const all=pool.filter(t=>PD[t[0]]&&PD[t[0]][k]!=null).sort((a,b)=>PD[b[0]][k]-PD[a[0]][k]);
   const rows=all.slice(0,state.gn);
   if(!rows.length)return h+'<p class="empty">No price data for this selection.</p></section>';
   h+='<ol class="gl">'+rows.map((t,i)=>{
     const r=PD[t[0]],m=TK[t[0]];
-    return '<li><span class="rk">'+(i+1)+'</span><span><a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(t[0])+'/" target="_blank" rel="noopener">'+esc(t[0])+'</a><span class="ss">'+esc(m.sub)+' · '+CAPN[m.cap]+'</span></span><span class="px">₹'+r.p.toLocaleString('en-IN')+'</span><span class="rt">'+fmtPct(r[k])+'</span></li>';
+    return '<li><span class="rk">'+(i+1)+'</span><span>'+flagBtn(t[0])+'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(t[0])+'/" target="_blank" rel="noopener">'+esc(t[0])+'</a><span class="ss">'+esc(m.sub)+' · '+CAPN[m.cap]+(R[t[0]]!=null?' · Rating '+R[t[0]]:'')+'</span></span><span class="px">₹'+r.p.toLocaleString('en-IN')+'</span><span class="rt">'+fmtPct(r[k])+'</span></li>';
   }).join('')+'</ol>'+(all.length>rows.length?'<button type="button" class="more" data-more="1">Show next 10 ('+rows.length+' of '+all.length+' shown)</button>':'')+'</section>';
   return h;
 }
+
+/* ---------- Screener and watchlist ---------- */
+const PRESETS=[
+  {id:'all',label:'All stocks'},
+  {id:'leaders',label:'Leaders',hint:()=>'Rating 80 or higher over '+H().about,test:(s,c)=>(c.R[s]||0)>=80},
+  {id:'rising',label:'Picking up speed',hint:()=>'Rating over '+PSH[H().fast]+' is at least 10 points above the '+PSH[H().slow]+' rating',test:(s,c)=>c.RF[s]!=null&&c.RS[s]!=null&&c.RF[s]-c.RS[s]>=10},
+  {id:'allup',label:'Up in every period',hint:()=>'Positive return over 1W, 1M, 3M and 6M',test:s=>!!(PD&&PD[s]&&PK.every(k=>PD[s][k]!=null&&PD[s][k]>0))},
+  {id:'inlead',label:'Strong in leading sub-sectors',hint:()=>'Rated 60 or higher, in a sub-sector with Leading status',test:(s,c)=>(c.R[s]||0)>=60&&(CUR.subBy[slug(TK[s].sec)+'|'+TK[s].sub]||{}).quad==='Leading'},
+  {id:'flagged',label:'Watchlist',hint:()=>'Stocks you have flagged',test:s=>state.flags.has(s)}
+];
+function stockList(preset,useFilters){
+  const h=H(),c={R:rateMap(h.main),RF:rateMap(h.fast),RS:rateMap(h.slow)};
+  let l=Object.keys(TK);
+  if(useFilters){
+    const f=state.scr;l=l.filter(s=>state.caps.has(TK[s].cap));
+    if(f.sec)l=l.filter(s=>slug(TK[s].sec)===f.sec);
+    if(f.sub)l=l.filter(s=>TK[s].sub===f.sub);
+  }
+  const q=state.q;if(q)l=l.filter(s=>s.toLowerCase().includes(q)||TK[s].sub.toLowerCase().includes(q));
+  const P=PRESETS.find(p=>p.id===preset);if(P&&P.test)l=l.filter(s=>P.test(s,c));
+  const k=state.scr.sort,d=state.scr.dir,CAPV={L:3,M:2,S:1};
+  const val=s=>k==='s'?s:k==='sub'?TK[s].sub:k==='cap'?CAPV[TK[s].cap]:k==='r'?c.R[s]:(PD&&PD[s]?PD[s][k]:null);
+  l.sort((a,b)=>{const x=val(a),y=val(b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return typeof x==='string'?x.localeCompare(y)*d:(x-y)*d});
+  return l;
+}
+const SCOLS=[['s','Stock'],['sub','Sub-sector'],['cap','Cap'],['p','Price'],['w','1W'],['m','1M'],['q','3M'],['h','6M'],['r','Rating']];
+function stockTable(list,key){
+  COPY[key]=list;
+  if(!list.length)return '<p class="empty">No stocks match. Try another preset, sector or market cap.</p>';
+  const R=rateMap(H().main),rows=list.slice(0,state.scr.limit),k=state.scr.sort;
+  let h='<div class="tw"><table class="st"><thead><tr>'+SCOLS.map(([c,l])=>'<th'+(c==='sub'||c==='cap'?' class="tl"':'')+'><button type="button" data-scol="'+c+'" aria-pressed="'+(c===k)+'">'+l+(c===k?(state.scr.dir>0?' ↑':' ↓'):'')+'</button>'+(c==='r'?tip('rating'):'')+'</th>').join('')+'</tr></thead><tbody>';
+  rows.forEach(s=>{
+    const m=TK[s],r=PD&&PD[s];
+    h+='<tr><td>'+flagBtn(s)+'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(s)+'/" target="_blank" rel="noopener">'+esc(s)+'</a></td>'+
+      '<td class="tl">'+esc(m.sub)+'<span class="sectag"> · '+esc(m.sec)+'</span></td>'+
+      '<td class="tl"><span class="dot '+m.cap+'"></span>'+CAPN[m.cap].replace('cap','')+'</td>'+
+      '<td>'+(r&&r.p!=null?'₹'+r.p.toLocaleString('en-IN'):'–')+'</td>'+
+      PK.map(p=>'<td>'+(r?pc(r[p]):'–')+'</td>').join('')+
+      '<td class="rating">'+(R[s]!=null?R[s]:'–')+'</td></tr>';
+  });
+  h+='</tbody></table></div>';
+  if(list.length>rows.length)h+='<button type="button" class="more" data-smore="1">Show next 100 ('+rows.length+' of '+list.length.toLocaleString()+' shown)</button>';
+  return h;
+}
+function screenerHTML(){
+  const f=state.scr,list=stockList(f.preset,true);
+  const sec=f.sec?DATA.find(s=>slug(s.n)===f.sec):null;
+  const secOpts='<option value="">All sectors</option>'+DATA.map(s=>'<option value="'+slug(s.n)+'"'+(f.sec===slug(s.n)?' selected':'')+'>'+esc(s.n)+'</option>').join('');
+  const subOpts=sec?'<option value="">All sub-sectors</option>'+sec.s.map(y=>'<option value="'+esc(y.n)+'"'+(f.sub===y.n?' selected':'')+'>'+esc(y.n)+'</option>').join(''):'';
+  return '<h1>Stock screener</h1><p class="lead">'+list.length.toLocaleString()+' stocks match.'+(PD?' Ratings use the '+H().label.toLowerCase()+'-term time frame ('+H().about+').':' Price data has not been generated yet, so only the stock list is shown.')+' The search box and market-cap filter above also apply.</p>'+
+    '<div class="caps" style="margin-bottom:12px" role="group" aria-label="Screener presets">'+PRESETS.map(p=>'<button type="button" class="cap" data-preset="'+p.id+'" aria-pressed="'+(p.id===f.preset)+'"'+(p.hint?' title="'+esc(p.hint())+'"':'')+'>'+p.label+'</button>').join('')+'</div>'+
+    '<div class="tools" style="flex-wrap:wrap;align-items:center"><select class="sel" id="scrSec" aria-label="Sector">'+secOpts+'</select>'+(sec?'<select class="sel" id="scrSub" aria-label="Sub-sector">'+subOpts+'</select>':'')+copyBtn('scr')+'</div>'+
+    '<section class="perf">'+stockTable(list,'scr')+'</section>';
+}
+function watchlistHTML(){
+  const n=state.flags.size,list=stockList('flagged',false);
+  return '<h1>Watchlist</h1><p class="lead">'+(n?n+' flagged stock'+(n>1?'s':'')+'. Saved in this browser only.':'Flag stocks with the ☆ star in the screener or the top gainers list. They are saved in this browser.')+'</p>'+
+    (n?'<div class="tools">'+copyBtn('wl')+'<button type="button" data-wlclear="1">Clear watchlist</button></div><section class="perf">'+stockTable(list,'wl')+'</section>':'');
+}
+
+/* ---------- Compare, rotation map, guide ---------- */
+function compareHTML(){
+  const cols=[...state.cmp].map(sl=>CUR.secBy[sl]).filter(Boolean);
+  if(cols.length<2)return '<h1>Compare sectors</h1><p class="lead">Tick 2 to 6 sectors in the Sector performance table on the All sectors page, then press Compare side by side.</p><div class="tools"><button type="button" data-go="all">Go to all sectors</button></div>';
+  const R=rateMap(H().main),mk=H().main;
+  const row=(l,f)=>'<tr><td>'+l+'</td>'+cols.map(c=>'<td>'+f(c)+'</td>').join('')+'</tr>';
+  const upPct=c=>{const v=c.list.map(t=>PD[t[0]]&&PD[t[0]][mk]).filter(x=>x!=null);return v.length?Math.round(v.filter(x=>x>0).length/v.length*100)+'%':'–'};
+  const top=c=>c.list.map(t=>t[0]).filter(s=>R[s]!=null).sort((a,b)=>R[b]-R[a]).slice(0,3).map(s=>'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(s)+'/" target="_blank" rel="noopener">'+esc(s)+'</a> '+R[s]).join('<br>')||'–';
+  return '<h1>Compare sectors</h1><p class="lead">'+H().label+'-term view, '+H().about+'. Returns are the median stock in each sector.</p>'+
+    '<div class="tools"><button type="button" data-go="all">← All sectors</button><button type="button" data-cmpclear="1">Clear selection</button></div>'+
+    '<section class="perf"><div class="tw"><table class="st"><thead><tr><th></th>'+cols.map(c=>'<th><button type="button" data-go="'+slug(c.sec.n)+'">'+esc(c.sec.n)+'</button></th>').join('')+'</tr></thead><tbody>'+
+    row('Stocks',c=>c.a.n)+row('Strength'+tip('strength'),c=>sbar(c.S))+row('Status'+tip('status'),c=>qbadge(c.quad))+row('Rank',c=>c.rank?'#'+c.rank+' of '+CUR.sec.length:'–')+
+    PK.map(p=>row(PLAB[p],c=>pc(c.a[p]))).join('')+row('Overall',c=>pc(c.a.o))+row('Stocks up over '+PSH[mk],upPct)+row('Top rated stocks'+tip('rating'),top)+
+    '</tbody></table></div></section>';
+}
+function rotationHTML(){
+  const isSub=state.rot==='sub';
+  const head='<h1>Rotation map</h1><p class="lead">Where each '+(isSub?'sub-sector':'sector')+' sits on strength and momentum, '+H().label.toLowerCase()+'-term view ('+H().about+').</p>'+
+    '<div class="tools"><div class="pt" role="group" aria-label="Show"><button type="button" data-rot="sec" aria-pressed="'+!isSub+'">Sectors</button><button type="button" data-rot="sub" aria-pressed="'+isSub+'">Sub-sectors</button></div></div>';
+  if(!PD)return head+'<p class="empty">Price data has not been generated yet. Run the update workflow once to create perf.js.</p>';
+  const rows=(isSub?CUR.sub:CUR.sec).filter(r=>r.S!=null&&r.mom!=null);
+  if(!rows.length)return head+'<p class="empty">No groups have enough price data for this filter.</p>';
+  const W=760,Ht=480,L=44,Rr=16,T=16,B=40;
+  const ym=Math.max(20,Math.ceil(Math.max(...rows.map(r=>Math.abs(r.mom)))/10)*10);
+  const X=v=>L+v/100*(W-L-Rr),Y=v=>T+(ym-v)/(2*ym)*(Ht-T-B);
+  const x50=X(50),y0=Y(0),x1=X(100),yb=Y(-ym),f=n=>n.toFixed(1);
+  const QC={Leading:'var(--up)',Gaining:'var(--large)',Fading:'var(--small)',Lagging:'var(--down)'};
+  let s='<svg viewBox="0 0 '+W+' '+Ht+'" role="img" aria-label="Rotation map">'+
+    '<rect x="'+f(x50)+'" y="'+T+'" width="'+f(x1-x50)+'" height="'+f(y0-T)+'" fill="var(--mid-bg)"/>'+
+    '<rect x="'+L+'" y="'+T+'" width="'+f(x50-L)+'" height="'+f(y0-T)+'" fill="var(--large-bg)"/>'+
+    '<rect x="'+f(x50)+'" y="'+f(y0)+'" width="'+f(x1-x50)+'" height="'+f(yb-y0)+'" fill="var(--small-bg)"/>'+
+    '<rect x="'+L+'" y="'+T+'" width="'+f(x1-L)+'" height="'+f(yb-T)+'" fill="none" stroke="var(--line)"/>'+
+    '<line x1="'+f(x50)+'" x2="'+f(x50)+'" y1="'+T+'" y2="'+f(yb)+'" stroke="var(--muted)" stroke-opacity=".5"/>'+
+    '<line x1="'+L+'" x2="'+f(x1)+'" y1="'+f(y0)+'" y2="'+f(y0)+'" stroke="var(--muted)" stroke-opacity=".5"/>'+
+    '<text class="ql" x="'+f(x1-8)+'" y="'+(T+18)+'" text-anchor="end">Leading</text>'+
+    '<text class="ql" x="'+(L+8)+'" y="'+(T+18)+'">Gaining</text>'+
+    '<text class="ql" x="'+f(x1-8)+'" y="'+f(yb-8)+'" text-anchor="end">Fading</text>'+
+    '<text class="ql" x="'+(L+8)+'" y="'+f(yb-8)+'">Lagging</text>';
+  [0,25,50,75,100].forEach(v=>{s+='<text class="ax" x="'+f(X(v))+'" y="'+f(yb+14)+'" text-anchor="middle">'+v+'</text>'});
+  [-ym,0,ym].forEach(v=>{s+='<text class="ax" x="'+(L-6)+'" y="'+f(Y(v)+4)+'" text-anchor="end">'+(v>0?'+':'')+v+'</text>'});
+  s+='<text class="ax" x="'+f((L+x1)/2)+'" y="'+(Ht-4)+'" text-anchor="middle">Weaker  ←  strength  →  stronger</text>'+
+    '<text class="ax" transform="translate(11 '+f((T+yb)/2)+') rotate(-90)" text-anchor="middle">Slowing  ←  momentum  →  speeding up</text>';
+  const ranked=rows.slice().sort((a,b)=>a.rank-b.rank),lab=new Set(ranked.slice(0,isSub?15:ranked.length));
+  rows.slice().sort((a,b)=>lab.has(a)-lab.has(b)).forEach(r=>{
+    const big=lab.has(r),id=r.sub?slug(r.sec.n)+'|'+r.sub.n:'',nm=r.sub?r.sub.n:r.sec.n,cx=f(X(r.S)),cy=f(Y(r.mom));
+    s+='<g class="rp" data-go="'+slug(r.sec.n)+'"'+(id?' data-open="'+esc(id)+'"':'')+'><title>'+esc(nm)+(r.sub?' · '+esc(r.sec.n):'')+' | strength '+Math.round(r.S)+', momentum '+(r.mom>0?'+':'')+Math.round(r.mom)+', '+r.quad+'</title>'+
+      '<circle class="d" cx="'+cx+'" cy="'+cy+'" r="'+(big?6:4.5)+'" fill="'+QC[r.quad]+'" fill-opacity="'+(big?1:.55)+'" stroke="var(--panel)" stroke-width="1.5"/><circle cx="'+cx+'" cy="'+cy+'" r="11" fill="transparent"/></g>';
+  });
+  const placed=[],fits=b=>b.x>=L&&b.x+b.w<=W&&b.y>=0&&b.y+b.h<=Ht-B+10&&!placed.some(o=>b.x<o.x+o.w&&b.x+b.w>o.x&&b.y<o.y+o.h&&b.y+b.h>o.y);
+  ranked.filter(r=>lab.has(r)).forEach(r=>{
+    const nm=r.sub?r.sub.n:r.sec.n,t=nm.length>26?nm.slice(0,25)+'…':nm,w=t.length*6.2,h=13,x=X(r.S),y=Y(r.mom);
+    const c=[[x+9,y-7],[x-9-w,y-7],[x-w/2,y-21],[x-w/2,y+8]].map(p=>({x:p[0],y:p[1],w,h})).find(fits);
+    if(c){placed.push(c);s+='<text class="lb" x="'+f(c.x)+'" y="'+f(c.y+10)+'">'+esc(t)+'</text>'}
+  });
+  s+='</svg>';
+  return head+'<section class="perf rot">'+s+'<p class="perf-asof" style="margin:8px 0 0">Right means stronger over '+H().about+'. Up means its '+PSH[H().fast]+' rank beats its '+PSH[H().slow]+' rank, so it is picking up speed. Groups often move clockwise: Gaining, then Leading, then Fading, then Lagging. Hover a dot for details, click it to open.'+(isSub?' Only the 15 strongest sub-sectors are labelled.':'')+'</p></section>';
+}
+function guideHTML(){
+  const c=(t,b)=>'<section class="perf guide"><h2>'+t+'</h2>'+b+'</section>';
+  return '<h1>How to use Sector Atlas</h1><p class="lead">A quick guide to the numbers and a simple routine for finding strong stocks in strong groups.</p>'+
+    c('What you are looking at','<p>Every stock in your list is grouped into a sector and a sub-sector. Using daily closing prices, the site ranks each group and each stock against the rest, so you can see at a glance where the market is strongest.</p>')+
+    c('Time frames','<p>The Short, Medium and Long switch at the top changes every ranking on the site.</p><ul><li><b>Short</b>: 1-week returns. Spots new moves early, but changes fast.</li><li><b>Medium</b>: 3-month returns. Confirms moves that have lasted.</li><li><b>Long</b>: 6-month returns. The big-picture leaders.</li></ul>')+
+    c('Strength (0 to 100)','<p>The median stock return of a sector or sub-sector, ranked against every other group. 100 is the strongest group and 0 the weakest. Using the median means one or two extreme movers cannot make a weak group look strong.</p>')+
+    c('Status','<ul><li>'+qbadge('Leading')+' Strength 50 or more, and its recent rank is at least as good as its longer rank.</li><li>'+qbadge('Gaining')+' Strength below 50, but improving.</li><li>'+qbadge('Fading')+' Strength 50 or more, but slowing down.</li><li>'+qbadge('Lagging')+' Strength below 50, and not improving.</li></ul><p>Improving compares a faster and a slower period: 1W against 1M on Short, 1M against 3M on Medium, and 3M against 6M on Long.</p>')+
+    c('Rating (1 to 99)','<p>Each stock’s return for the chosen time frame, ranked against all the other stocks. A rating of 90 means the stock beat about 90% of the list. The rating is the same whatever filter you use.</p>')+
+    c('Rotation map','<p>Each dot is a sector or sub-sector. Further right means stronger, higher up means picking up speed. Groups often travel clockwise: from Gaining into Leading, then Fading, then Lagging. A group moving from Gaining towards Leading is often worth a closer look.</p>')+
+    c('A simple routine','<ol><li>Check <b>Market pulse</b> on the All sectors page. A weak mood calls for more caution.</li><li>Find the Leading and Gaining sectors in the sector table or on the rotation map.</li><li>Open a sector and sort its sub-sectors by Strength.</li><li>In the screener, use <b>Strong in leading sub-sectors</b> or <b>Leaders</b>.</li><li>Flag the stocks you like with the ☆ star, then use <b>Copy for TradingView</b> to check their charts there.</li></ol>')+
+    c('Good to know','<ul><li>Everything is worked out in your browser from the price-only, split-adjusted returns in perf.js. It updates when your daily workflow runs.</li><li>There is no volume, moving-average or 52-week-high data yet, so the rankings use returns only.</li><li>Your watchlist is stored in this browser. It will not appear on another device.</li><li>This is a research aid, not investment advice.</li></ul>');
+}
+
+/* ---------- Core ---------- */
 const $=s=>document.querySelector(s);
 const slug=s=>s.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
 const total=DATA.reduce((a,x)=>a+x.s.reduce((b,y)=>b+y.x.length,0),0);
@@ -219,6 +524,12 @@ function secTotal(sec){return sec.s.reduce((a,y)=>a+y.x.length,0)}
 
 function buildNav(){
   const nav=$('#nav');nav.innerHTML='';
+  [['screener','Stock screener'],['rotation','Rotation map'],['watchlist','Watchlist'],['guide','How to use']].forEach(([s,l])=>{
+    const b=document.createElement('button');b.dataset.slug=s;
+    b.innerHTML='<span>'+l+'</span><span class="c"'+(s==='watchlist'?' id="wlc"':'')+'>'+(s==='watchlist'?(state.flags.size||''):'')+'</span>';
+    nav.appendChild(b);
+  });
+  const sep=document.createElement('div');sep.className='navsep';nav.appendChild(sep);
   const all=document.createElement('button');
   all.innerHTML='<span>All sectors</span><span class="c">'+total+'</span>';
   all.dataset.slug='all';nav.appendChild(all);
@@ -243,11 +554,11 @@ function buildCaps(){
 }
 function go(s){
   state.gn=10;
-  state.sector=s==='all'?null:s;
-  try{location.hash=(s==='all'?'all-sectors':s)}catch(e){}
+  if(PAGES.includes(s)){state.page=s;state.sector=null}else{state.page='sectors';state.sector=s==='all'?null:s}
+  try{location.hash=PAGES.includes(s)?s:(s==='all'?'all-sectors':s)}catch(e){}
   render();window.scrollTo({top:0});
 }
-function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 
 function subHTML(sec,sub,forceOpen){
   const list=sub.x.filter(t=>state.caps.has(t[1]));
@@ -256,23 +567,34 @@ function subHTML(sec,sub,forceOpen){
   const subMatch=q&&sub.n.toLowerCase().includes(q);
   if(q&&!subMatch)shown=list.filter(t=>t[0].toLowerCase().includes(q));
   if(!shown.length)return '';
+  shown.forEach(t=>SHOWN.push(t[0]));
   const c=count(shown);
   const id=slug(sec.n)+'|'+sub.n;
   const open=forceOpen||state.open.has(id);
+  const g=CUR.subBy[id];
+  const badge=g&&g.S!=null?' '+qbadge(g.quad)+' <span class="sectag" title="Strength over '+H().about+'">'+Math.round(g.S)+'</span>':'';
   const chips=['L','M','S'].map(k=>{
-    const g=shown.filter(t=>t[1]===k);if(!g.length)return '';
-    return '<div class="grp"><div class="gh '+k+'"><span class="dot '+k+'"></span>'+CAPN[k]+' <span class="gn">'+g.length+'</span></div><div class="gc">'+
-      g.map(t=>'<a class="chip '+k+'"'+chipTitle(t[0])+' href="https://www.screener.in/company/'+encodeURIComponent(t[0])+'/" target="_blank" rel="noopener">'+esc(t[0])+'</a>').join('')+'</div></div>';
+    const gr=shown.filter(t=>t[1]===k);if(!gr.length)return '';
+    return '<div class="grp"><div class="gh '+k+'"><span class="dot '+k+'"></span>'+CAPN[k]+' <span class="gn">'+gr.length+'</span></div><div class="gc">'+
+      gr.map(t=>'<a class="chip '+k+'"'+chipTitle(t[0])+' href="https://www.screener.in/company/'+encodeURIComponent(t[0])+'/" target="_blank" rel="noopener">'+(state.flags.has(t[0])?'★ ':'')+esc(t[0])+'</a>').join('')+'</div></div>';
   }).join('');
   return '<section class="sub'+(open?' open':'')+'" data-id="'+esc(id)+'">'+
-   '<button type="button" aria-expanded="'+open+'"><span class="chev"></span><span class="sname">'+esc(sub.n)+(state.sector===null?' <span class="sectag">· '+esc(sec.n)+'</span>':'')+'</span>'+
+   '<button type="button" aria-expanded="'+open+'"><span class="chev"></span><span class="sname">'+esc(sub.n)+(state.sector===null?' <span class="sectag">· '+esc(sec.n)+'</span>':'')+badge+'</span>'+
    '<span class="mini"><span><span class="dot L"></span>'+c.L+'</span><span><span class="dot M"></span>'+c.M+'</span><span><span class="dot S"></span>'+c.S+'</span></span>'+
    pmHTML(aggr(shown))+'<span class="total">'+shown.length+'</span></button><div class="chips">'+chips+'</div></section>';
 }
 function render(){
-  document.querySelectorAll('.nav button').forEach(b=>b.setAttribute('aria-current',String((b.dataset.slug==='all'&&!state.sector)||b.dataset.slug===state.sector)));
-  document.querySelectorAll('.cap').forEach(b=>b.setAttribute('aria-pressed',String(state.caps.has(b.dataset.k))));
+  computeGroups();
+  document.querySelectorAll('.nav button').forEach(b=>{
+    const s=b.dataset.slug,cur=PAGES.includes(s)?state.page===s:state.page==='sectors'&&((s==='all'&&!state.sector)||s===state.sector);
+    b.setAttribute('aria-current',String(cur));
+  });
+  document.querySelectorAll('.cap[data-k]').forEach(b=>b.setAttribute('aria-pressed',String(state.caps.has(b.dataset.k))));
+  document.querySelectorAll('#hz button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.hz===state.hz)));
+  const wl=$('#wlc');if(wl)wl.textContent=state.flags.size||'';
   const view=$('#view');
+  const pages={screener:screenerHTML,watchlist:watchlistHTML,rotation:rotationHTML,guide:guideHTML,compare:compareHTML};
+  if(pages[state.page]){view.innerHTML=pages[state.page]();return}
   const secs=state.sector?DATA.filter(s=>slug(s.n)===state.sector):DATA;
   const q=state.q;
   let html='';
@@ -280,39 +602,65 @@ function render(){
   const pool=[];secs.forEach(s=>s.s.forEach(y=>y.x.forEach(t=>{if(state.caps.has(t[1]))pool.push(t)})));
   const c=count(pool),n=pool.length||1;
   if(state.sector&&secs[0]){
-    html+='<h1>'+esc(secs[0].n)+'</h1><p class="lead">'+pool.length+' stocks in '+secs[0].s.length+' sub-sectors</p>'+(PD?'<div class="sumrow">'+pmHTML(aggr(pool))+'</div>':'');
+    const g=CUR.secBy[state.sector];
+    html+='<h1>'+esc(secs[0].n)+'</h1><p class="lead">'+pool.length+' stocks in '+secs[0].s.length+' sub-sectors</p>'+
+      (g&&g.S!=null?'<p class="lead">'+qbadge(g.quad)+' Strength '+Math.round(g.S)+tip('strength')+' · rank '+g.rank+' of '+CUR.sec.length+' sectors · '+H().label.toLowerCase()+'-term view</p>':'')+
+      (PD?'<div class="sumrow">'+pmHTML(aggr(pool))+'</div>':'');
   } else {
     html+='<h1>All sectors</h1><p class="lead">'+pool.length.toLocaleString()+' stocks across '+secs.length+' sectors. Pick a sector on the left, or search.</p>';
   }
   html+='<div class="bar" role="img" aria-label="Market cap mix"><i class="L" style="width:'+(c.L/n*100)+'%"></i><i class="M" style="width:'+(c.M/n*100)+'%"></i><i class="S" style="width:'+(c.S/n*100)+'%"></i></div>';
   html+='<div class="legend"><span><span class="dot L"></span>Largecap '+c.L+'</span><span><span class="dot M"></span>Midcap '+c.M+'</span><span><span class="dot S"></span>Smallcap '+c.S+'</span></div>';
-  if(!state.sector&&!q)html+=sectorTable(secs);
+  if(!state.sector&&!q){
+    if(PD)html+=pulseHTML(pool);
+    html+=sectorTable();
+    if(PD)html+=topSubsHTML()+shiftsHTML();
+  }
   html+=gainersHTML(pool);
-  if(state.sector||q){html+='<div class="tools"><button type="button" id="openAll">Expand all</button><button type="button" id="closeAll">Collapse all</button>'+(PD?'<span class="ssort">Sort sub-sectors: '+['size','w','m','q','h','o'].map(s=>'<button type="button" data-ss="'+s+'" aria-pressed="'+(s===state.subsort)+'">'+(s==='size'?'Size':PSH[s])+'</button>').join('')+'</span>':'')+'</div>'}
+  if(state.sector||q){html+='<div class="tools"><button type="button" id="openAll">Expand all</button><button type="button" id="closeAll">Collapse all</button>'+copyBtn('view')+(PD?'<span class="ssort">Sort sub-sectors: '+['size','S','w','m','q','h','o'].map(s=>'<button type="button" data-ss="'+s+'" aria-pressed="'+(s===state.subsort)+'">'+(s==='size'?'Size':PSH[s])+'</button>').join('')+'</span>':'')+'</div>'}
   let body='';
+  SHOWN=[];
   if(!state.sector&&!q){
     // overview: one card per sector
     secs.forEach(sec=>{
       const cc=count(sec.s.flatMap(y=>y.x).filter(t=>state.caps.has(t[1])));
       const tt=cc.L+cc.M+cc.S;if(!tt)return;
-      body+='<section class="sub"><button type="button" data-go="'+slug(sec.n)+'"><span class="chev" style="transform:rotate(-45deg)"></span><span class="sname">'+esc(sec.n)+' <span class="sectag">· '+sec.s.length+' sub-sectors</span></span><span class="mini"><span><span class="dot L"></span>'+cc.L+'</span><span><span class="dot M"></span>'+cc.M+'</span><span><span class="dot S"></span>'+cc.S+'</span></span><span class="total">'+tt+'</span></button></section>';
+      const g=CUR.secBy[slug(sec.n)];
+      body+='<section class="sub"><button type="button" data-go="'+slug(sec.n)+'"><span class="chev" style="transform:rotate(-45deg)"></span><span class="sname">'+esc(sec.n)+' <span class="sectag">· '+sec.s.length+' sub-sectors</span>'+(g&&g.quad?' '+qbadge(g.quad):'')+'</span><span class="mini"><span><span class="dot L"></span>'+cc.L+'</span><span><span class="dot M"></span>'+cc.M+'</span><span><span class="dot S"></span>'+cc.S+'</span></span><span class="total">'+tt+'</span></button></section>';
     });
   } else {
     const items=[];secs.forEach(sec=>sec.s.forEach(sub=>items.push({sec,sub})));
     if(PD&&state.subsort!=='size'){
-      const sk=state.subsort,v=it=>{const x=aggr(it.sub.x.filter(t=>state.caps.has(t[1])))[sk];return x==null?-1e9:x};
+      const sk=state.subsort,v=it=>{
+        if(sk==='S'){const g=CUR.subBy[slug(it.sec.n)+'|'+it.sub.n];return g&&g.S!=null?g.S:-1e9}
+        const x=aggr(it.sub.x.filter(t=>state.caps.has(t[1])))[sk];return x==null?-1e9:x};
       items.sort((a,b)=>v(b)-v(a));
     }
     items.forEach(it=>{body+=subHTML(it.sec,it.sub,!!q)});
   }
+  COPY.view=[...new Set(SHOWN)];
   view.innerHTML=html+(body||'<p class="empty">Nothing matches. Clear the search or turn on more market caps.</p>');
 }
 $('#view').addEventListener('click',e=>{
+  const fl=e.target.closest('[data-flag]');if(fl){e.preventDefault();toggleFlag(fl.dataset.flag);return}
+  const cp=e.target.closest('[data-copy]');if(cp){doCopy(cp.dataset.copy);return}
+  const pr=e.target.closest('[data-preset]');if(pr){state.scr.preset=pr.dataset.preset;state.scr.limit=100;render();return}
+  const sc=e.target.closest('[data-scol]');if(sc){const k=sc.dataset.scol;if(state.scr.sort===k)state.scr.dir*=-1;else{state.scr.sort=k;state.scr.dir=(k==='s'||k==='sub')?1:-1}render();return}
+  if(e.target.closest('[data-smore]')){state.scr.limit+=100;render();return}
+  const ro=e.target.closest('[data-rot]');if(ro){state.rot=ro.dataset.rot;render();return}
+  if(e.target.closest('[data-compare]')){go('compare');return}
+  if(e.target.closest('[data-cmpclear]')){state.cmp.clear();render();return}
+  if(e.target.closest('[data-wlclear]')){if(confirm('Remove all '+state.flags.size+' stocks from your watchlist?')){state.flags.clear();store.set('flags',[]);render()}return}
   const so=e.target.closest('[data-sort]');if(so){state.sort=so.dataset.sort;render();return}
   const ss=e.target.closest('[data-ss]');if(ss){state.subsort=ss.dataset.ss;render();return}
   const mb=e.target.closest('[data-more]');if(mb){state.gn+=10;render();return}
   const pb=e.target.closest('[data-p]');if(pb){state.period=pb.dataset.p;state.gn=10;render();return}
-  const g=e.target.closest('[data-go]');if(g){go(g.dataset.go);return}
+  const g=e.target.closest('[data-go]');if(g){
+    const op=g.dataset.open;if(op)state.open.add(op);
+    go(g.dataset.go);
+    if(op){const el=[...document.querySelectorAll('.sub[data-id]')].find(x=>x.dataset.id===op);if(el)el.scrollIntoView({block:'start'})}
+    return;
+  }
   if(e.target.closest('#openAll')){document.querySelectorAll('.sub[data-id]').forEach(s=>state.open.add(s.dataset.id));render();return}
   if(e.target.closest('#closeAll')){state.open.clear();render();return}
   const b=e.target.closest('.sub>button');if(!b)return;
@@ -321,10 +669,29 @@ $('#view').addEventListener('click',e=>{
   s.classList.toggle('open',o);b.setAttribute('aria-expanded',o);
   o?state.open.add(id):state.open.delete(id);
 });
-$('#q').addEventListener('input',e=>{state.q=e.target.value.trim().toLowerCase();render()});
+$('#view').addEventListener('change',e=>{
+  const c=e.target.closest('[data-cmp]');
+  if(c){const s=c.dataset.cmp;if(c.checked){if(state.cmp.size>=6){c.checked=false;toast('You can compare up to 6 sectors at a time.');return}state.cmp.add(s)}else state.cmp.delete(s);render();return}
+  if(e.target.id==='scrSec'){state.scr.sec=e.target.value;state.scr.sub='';state.scr.limit=100;render();return}
+  if(e.target.id==='scrSub'){state.scr.sub=e.target.value;state.scr.limit=100;render();return}
+});
+$('#q').addEventListener('input',e=>{
+  state.q=e.target.value.trim().toLowerCase();state.scr.limit=100;
+  if(!['sectors','screener','watchlist'].includes(state.page)){state.page='sectors';state.sector=null;try{history.replaceState(null,'','#all-sectors')}catch(err){}}
+  render();
+});
+$('#hz').addEventListener('click',e=>{const b=e.target.closest('[data-hz]');if(!b)return;state.hz=b.dataset.hz;store.set('hz',state.hz);render()});
+document.querySelectorAll('#hz [data-hz]').forEach(b=>{b.title=HZ[b.dataset.hz].tip});
+const darkMQ=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
+const effTheme=()=>document.documentElement.dataset.theme||(darkMQ&&darkMQ.matches?'dark':'light');
+function themeLabel(){$('#themeBtn').textContent=effTheme()==='dark'?'☀ Light':'☾ Dark'}
+$('#themeBtn').addEventListener('click',()=>{const t=effTheme()==='dark'?'light':'dark';document.documentElement.dataset.theme=t;try{localStorage.setItem('sa.theme',t)}catch(e){}themeLabel()});
+if(darkMQ&&darkMQ.addEventListener)darkMQ.addEventListener('change',themeLabel);
+themeLabel();
 function fromHash(){
   const h=location.hash.slice(1);
-  state.sector=(h&&h!=='all-sectors'&&DATA.some(s=>slug(s.n)===h))?h:null;
+  if(PAGES.includes(h)){state.page=h;state.sector=null}
+  else{state.page='sectors';state.sector=(h&&h!=='all-sectors'&&DATA.some(s=>slug(s.n)===h))?h:null}
   render();
 }
 window.addEventListener('hashchange',fromHash);
