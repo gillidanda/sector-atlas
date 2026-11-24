@@ -42,7 +42,7 @@ def base_dates(last_date):
 
 def load_tickers():
     html = (ROOT / "index.html").read_text(encoding="utf-8")
-    m = re.search(r"const DATA=(\[.*?\]);\s*const CAPN", html, re.S)
+    m = re.search(r"const DATA(?:_ALL)?=(\[.*?\]);\s*(?:let DATA=DATA_ALL;\s*)?const CAPN", html, re.S)
     data = json.loads(m.group(1))
     return sorted({t[0] for sec in data for sub in sec["s"] for t in sub["x"]})
 
@@ -87,6 +87,7 @@ def traded_value(close: pd.Series, vol: pd.Series):
 
 
 def fetch(symbols):
+    """Download daily closes and volumes. Returns {symbol: (close_series, volume_series)}."""
     import yfinance as yf
 
     df = yf.download(
@@ -97,23 +98,27 @@ def fetch(symbols):
     for s in symbols:
         try:
             sub = df[s + ".NS"] if len(symbols) > 1 else df
-            col, vol = sub["Close"], sub["Volume"]
+            col, vol = sub["Close"].copy(), sub["Volume"].copy()
         except KeyError:
             continue
         col.index = pd.to_datetime(col.index).tz_localize(None).normalize()
         vol.index = col.index
-        r = compute_returns(col)
-        if r:
-            try:
-                tv = traded_value(col, vol)
-            except Exception:
-                tv = None
-            try:
-                ex = trend_info(col)
-            except Exception:
-                ex = {}
-            res[s] = r + (tv, ex)
+        col = col.dropna()
+        if len(col) >= 2:
+            res[s] = (col, vol.reindex(col.index))
     return res
+
+
+def pick_as_of(series, coverage=0.85):
+    """Latest date on which at least `coverage` of the stocks have a close.
+    Yahoo fills the newest day in gradually, so this avoids mixing 'Monday' and 'Friday' prices."""
+    counts = {}
+    for close, _ in series.values():
+        for d in close.index:
+            counts[d] = counts.get(d, 0) + 1
+    need = coverage * len(series)
+    ok = [d for d, n in counts.items() if n >= need]
+    return max(ok) if ok else max(counts)
 
 
 def main():
@@ -129,12 +134,21 @@ def main():
     if len(got) < 0.7 * len(tickers):
         sys.exit(f"Only {len(got)}/{len(tickers)} tickers returned data; keeping old perf.js")
 
-    # Market date = the most common latest date; drop stocks whose data stopped long ago (suspended/delisted)
-    as_of = pd.Series([v[0] for v in got.values()]).mode().iloc[0]
+    as_of = pick_as_of(got)
     d = {}
-    for t, (ld, price, rets, tv, ex) in got.items():
-        if (as_of - ld).days > 5:
-            continue
+    for t, (close, vol) in got.items():
+        close = close[close.index <= as_of]  # every stock is measured on the SAME date
+        if not len(close) or close.index[-1] != as_of:
+            continue  # no price on that day (suspended or Yahoo has not filled it in yet)
+        _, price, rets = compute_returns(close)
+        try:
+            tv = traded_value(close, vol.reindex(close.index))
+        except Exception:
+            tv = None
+        try:
+            ex = trend_info(close)
+        except Exception:
+            ex = {}
         d[t] = {"p": round(price, 2), **rets, "v": tv, **ex}
     ranked = sorted((t for t in d if d[t]["v"]), key=lambda t: -d[t]["v"])
     for i, t in enumerate(ranked):
