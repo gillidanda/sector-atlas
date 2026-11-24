@@ -3,7 +3,12 @@ name: Update prices
 on:
   schedule:
     # NSE closes 15:30 IST. 11:30 UTC = 17:00 IST, Mon-Fri, once EOD data is settled.
-    - cron: "30 11 * * 1-5"
+    # Also Saturday, so Friday's close shows over the weekend.
+    - cron: "30 11 * * 1-6"
+  # Runs straight away whenever you upload an NSE file into the nse-data folder.
+  push:
+    paths:
+      - "nse-data/**"
   workflow_dispatch: {}
 
 permissions:
