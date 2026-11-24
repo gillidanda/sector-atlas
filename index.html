@@ -146,6 +146,8 @@ h1{font-family:var(--display);font-size:clamp(26px,4vw,36px);line-height:1.15;ma
 .info{display:inline-flex;width:15px;height:15px;border-radius:50%;border:1px solid var(--line);font:500 10px/1 var(--body);align-items:center;justify-content:center;color:var(--muted);cursor:help;vertical-align:1px}
 .flag{border:0;background:none;cursor:pointer;color:var(--muted);padding:0 5px 0 0;font-size:14px;line-height:1}
 .flag.on{color:var(--small)}
+.chart{text-decoration:none;color:var(--muted);padding:0 0 0 6px;font-size:13px;line-height:1;opacity:.8}
+.chart:hover{opacity:1;color:var(--text,inherit)}
 .btn2{border:1px solid var(--line);background:var(--panel);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px}
 .btn2:hover:not(:disabled){background:var(--accent-soft)}
 .btn2:disabled{opacity:.5;cursor:default}
@@ -302,6 +304,9 @@ function computeGroups(){
 }
 
 /* ---------- Watchlist flags, TradingView copy, toast ---------- */
+/* Opens the stock in your saved TradingView layout. TradingView writes & and - as _ (M&M -> NSE:M_M). */
+const TV_LAYOUT='https://in.tradingview.com/chart/yJrzUFxK/';
+function chartBtn(s){return '<a class="chart" href="'+TV_LAYOUT+'?symbol='+encodeURIComponent('NSE:'+s.replace(/[&-]/g,'_'))+'" target="_blank" rel="noopener" title="Open '+esc(s)+' chart on TradingView" aria-label="Chart for '+esc(s)+'">📈</a>'}
 const flagBtn=s=>{const on=state.flags.has(s);return '<button type="button" class="flag'+(on?' on':'')+'" data-flag="'+esc(s)+'" aria-pressed="'+on+'" title="'+(on?'Remove from watchlist':'Add to watchlist')+'">'+(on?'★':'☆')+'</button>'};
 function toggleFlag(s){
   state.flags.has(s)?state.flags.delete(s):state.flags.add(s);store.set('flags',[...state.flags]);
@@ -390,7 +395,7 @@ function gainersHTML(pool){
   if(!rows.length)return h+'<p class="empty">No price data for this selection.</p></section>';
   h+='<ol class="gl">'+rows.map((t,i)=>{
     const r=PD[t[0]],m=TK[t[0]];
-    return '<li><span class="rk">'+(i+1)+'</span><span>'+flagBtn(t[0])+'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(t[0])+'/" target="_blank" rel="noopener">'+esc(t[0])+'</a><span class="ss">'+esc(m.sub)+' · '+CAPN[m.cap]+(R[t[0]]!=null?' · Rating '+R[t[0]]:'')+'</span></span><span class="px">₹'+(r.p/(1+r[k]/100)).toLocaleString('en-IN',{maximumFractionDigits:2})+' → ₹'+r.p.toLocaleString('en-IN')+'</span><span class="rt">'+fmtPct(r[k])+'</span></li>';
+    return '<li><span class="rk">'+(i+1)+'</span><span>'+flagBtn(t[0])+'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(t[0])+'/" target="_blank" rel="noopener">'+esc(t[0])+'</a>'+chartBtn(t[0])+'<span class="ss">'+esc(m.sub)+' · '+CAPN[m.cap]+(R[t[0]]!=null?' · Rating '+R[t[0]]:'')+'</span></span><span class="px">₹'+(r.p/(1+r[k]/100)).toLocaleString('en-IN',{maximumFractionDigits:2})+' → ₹'+r.p.toLocaleString('en-IN')+'</span><span class="rt">'+fmtPct(r[k])+'</span></li>';
   }).join('')+'</ol>'+(all.length>rows.length?'<button type="button" class="more" data-more="1">Show next 10 ('+rows.length+' of '+all.length+' shown)</button>':'')+'</section>';
   return h;
 }
@@ -431,7 +436,7 @@ function stockTable(list,key){
   let h='<div class="tw"><table class="st"><thead><tr>'+SCOLS.map(([c,l])=>'<th'+(c==='sub'||c==='cap'?' class="tl"':'')+'><button type="button" data-scol="'+c+'" aria-pressed="'+(c===k)+'">'+l+(c===k?(SC().dir>0?' ↑':' ↓'):'')+'</button>'+(c==='r'?tip('rating'):'')+'</th>').join('')+'</tr></thead><tbody>';
   rows.forEach(s=>{
     const m=TK[s],r=PD&&PD[s];
-    h+='<tr><td>'+flagBtn(s)+'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(s)+'/" target="_blank" rel="noopener">'+esc(s)+'</a></td>'+
+    h+='<tr><td>'+flagBtn(s)+'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(s)+'/" target="_blank" rel="noopener">'+esc(s)+'</a>'+chartBtn(s)+'</td>'+
       '<td class="tl">'+esc(m.sub)+'<span class="sectag"> · '+esc(m.sec)+'</span></td>'+
       '<td class="tl"><span class="dot '+m.cap+'"></span>'+CAPN[m.cap].replace('cap','')+'</td>'+
       '<td>'+(r&&r.p!=null?'₹'+r.p.toLocaleString('en-IN'):'–')+'</td>'+
