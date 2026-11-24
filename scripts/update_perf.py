@@ -4,6 +4,10 @@
 perf.js defines one global:  const PERF = {asOf, updated, d: {TICKER: {p, w, m, q, h}}}
   p = last close, w/m/q/h = % return over 1 week / 1 month / 3 months / 6 months.
 
+Prices come from Yahoo. Any NSE "Full Bhavcopy" files placed in nse-data/
+(sec_bhavdata_full_DDMMYYYY.csv) override Yahoo for those days, so the site shows
+NSE's official close as soon as you upload the file.
+
 Run:  python scripts/update_perf.py
 """
 import json
@@ -109,6 +113,63 @@ def fetch(symbols):
     return res
 
 
+NSE_SERIES = {"EQ", "BE", "BZ", "SM", "ST", "E1", "IV", "RR", "GB", "GS"}
+
+
+def load_nse(tickers):
+    """Read nse-data/sec_bhavdata_full_*.csv -> {date: {ticker: (close, prev_close, volume)}}."""
+    want, out = set(tickers), {}
+    for f in sorted((ROOT / "nse-data").glob("*.csv")):
+        try:
+            df = pd.read_csv(f, skipinitialspace=True, dtype=str)
+            df.columns = [c.strip() for c in df.columns]
+            df = df.apply(lambda c: c.str.strip())
+            df = df[df["SERIES"].isin(NSE_SERIES) & df["SYMBOL"].isin(want)]
+            day = {}
+            for r in df.itertuples(index=False):
+                date = pd.to_datetime(r.DATE1, format="%d-%b-%Y")
+                if r.SYMBOL not in day:
+                    day[r.SYMBOL] = (float(r.CLOSE_PRICE), float(r.PREV_CLOSE), float(r.TTL_TRD_QNTY))
+            if day:
+                out.setdefault(date, {}).update(day)
+                print(f"NSE file {f.name}: {len(day)} stocks for {date.date()}")
+        except Exception as e:  # a bad file must never stop the update
+            print(f"Skipping {f.name}: {e}")
+    return out
+
+
+def merge_nse(got, nse):
+    """Put NSE's official closes into the Yahoo series, oldest day first."""
+    for date in sorted(nse):
+        # previous trading day = latest earlier date that most stocks have a price for
+        counts = {}
+        for c, _ in got.values():
+            for d in c.index[c.index < date][-3:]:
+                counts[d] = counts.get(d, 0) + 1
+        busy = [d for d, n in counts.items() if n >= 0.5 * len(got)]
+        prev_day = max(busy) if busy else None
+        for t, (close, prev, vol) in nse[date].items():
+            if t in got:
+                c, v = got[t]
+            else:
+                c, v = pd.Series(dtype=float), pd.Series(dtype=float)
+            y = c.get(date)
+            if y is not None and pd.notna(y) and abs(close / y - 1) > 0.03:
+                continue  # Yahoo already adjusted this day for a later split/bonus: keep Yahoo
+            before = c[c.index < date]
+            if len(before) and prev > 0 and before.index[-1] == prev_day:
+                ratio = prev / float(before.iloc[-1])
+                if abs(ratio - 1) > 0.03:  # split/bonus today that Yahoo has not applied yet
+                    c = c.copy()
+                    c[c.index < date] *= ratio
+            c = c.copy()
+            v = v.copy()
+            c[date] = close
+            v[date] = vol
+            c, v = c.sort_index(), v.sort_index()
+            got[t] = (c, v.reindex(c.index))
+
+
 def pick_as_of(series, coverage=0.85):
     """Latest date on which at least `coverage` of the stocks have a close.
     Yahoo fills the newest day in gradually, so this avoids mixing 'Monday' and 'Friday' prices."""
@@ -134,13 +195,19 @@ def main():
     if len(got) < 0.7 * len(tickers):
         sys.exit(f"Only {len(got)}/{len(tickers)} tickers returned data; keeping old perf.js")
 
+    nse = load_nse(tickers)
+    merge_nse(got, nse)
+
     as_of = pick_as_of(got)
     d = {}
     for t, (close, vol) in got.items():
         close = close[close.index <= as_of]  # every stock is measured on the SAME date
         if not len(close) or close.index[-1] != as_of:
             continue  # no price on that day (suspended or Yahoo has not filled it in yet)
-        _, price, rets = compute_returns(close)
+        r = compute_returns(close)
+        if r is None:
+            continue
+        _, price, rets = r
         try:
             tv = traded_value(close, vol.reindex(close.index))
         except Exception:
