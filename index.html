@@ -99,7 +99,7 @@ h1{font-family:var(--display);font-size:clamp(26px,4vw,36px);line-height:1.15;ma
 .gl .tk{font-family:var(--mono);font-weight:500;text-decoration:none}
 .gl .tk:hover{text-decoration:underline}
 .gl .ss{color:var(--muted);font-size:12px;margin-left:8px}
-.gl .px{font-family:var(--mono);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.gl .px{font-family:var(--mono);font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .gl .rt{font-family:var(--mono);font-weight:500;min-width:72px;text-align:right;font-variant-numeric:tabular-nums;color:var(--up)}
 .pos{color:var(--up)}.neg{color:var(--down)}
 .pm{display:flex;gap:12px;font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -195,7 +195,7 @@ h1{font-family:var(--display);font-size:clamp(26px,4vw,36px);line-height:1.15;ma
       <button type="button" class="cap" id="themeBtn" aria-label="Switch light or dark mode"></button>
     </div>
     <div id="view"></div>
-    <p class="note">Sectors and market-cap labels come from your file. Sub-sectors were assigned by hand from each company's main business, following the NSE and SEBI industry classification as a guide. Companies that could not be placed with confidence are listed under Others / Unclassified. Ticker chips open the company page on Screener. Returns are price-only, split-adjusted, from end-of-day closes (hover a chip for all four periods). Top gainers follow the sector and market-cap filters. Sector and sub-sector figures are the median stock return, so a few extreme movers do not skew them. Strength, status and ratings are worked out in your browser from these returns: they rank each group or stock against the rest for the chosen time frame. They are a research aid, not investment advice.</p>
+    <p class="note">Sectors and market-cap labels come from your file. Sub-sectors were assigned by hand from each company's main business, following the NSE and SEBI industry classification as a guide. Companies that could not be placed with confidence are listed under Others / Unclassified. Ticker chips open the company page on Screener. Only the 1,100 most actively traded stocks (by recent traded value) are ranked, so thinly traded stocks do not distort the lists. Returns are price-only, split-adjusted, from end-of-day closes (hover a chip for all six periods). Top gainers follow the sector and market-cap filters. Sector and sub-sector figures are the median stock return, so a few extreme movers do not skew them. Strength, status and ratings are worked out in your browser from these returns: they rank each group or stock against the rest for the chosen time frame. They are a research aid, not investment advice.</p>
   </main>
 </div>
 <div class="toast" id="toast" role="status" hidden></div>
@@ -207,31 +207,37 @@ const store={get(k,d){try{const v=JSON.parse(localStorage.getItem('sa.'+k));retu
 // Time frames: "main" ranks strength, "fast" vs "slow" measures whether it is speeding up.
 const HZ={
   short:{label:'Short',main:'w',fast:'w',slow:'m',about:'the last week',tip:'Ranks by 1-week returns. Catches new moves early, but is noisy.'},
-  medium:{label:'Medium',main:'q',fast:'m',slow:'q',about:'the last 3 months',tip:'Ranks by 3-month returns. Confirms moves that have lasted.'},
+  medium:{label:'Medium',main:'m',fast:'m',slow:'q',about:'the last month',tip:'Ranks by 1-month returns. Confirms moves that have lasted.'},
   long:{label:'Long',main:'h',fast:'q',slow:'h',about:'the last 6 months',tip:'Ranks by 6-month returns. The big-picture leaders.'}
 };
 const PAGES=['screener','rotation','watchlist','guide','compare'];
 const savedHz=store.get('hz','medium');
-const state={sector:null,caps:new Set(['L','M','S']),q:'',open:new Set(),period:'w',sort:'o',subsort:'size',gn:10,
+const state={sector:null,caps:new Set(['L','M','S']),q:'',open:new Set(),period:(HZ[savedHz]||HZ.medium).main,sort:'o',subsort:'size',gn:10,
   page:'sectors',hz:HZ[savedHz]?savedHz:'medium',flags:new Set(store.get('flags',[])),
-  scr:{preset:'all',sec:'',sub:'',sort:'r',dir:-1,limit:100},rot:'sec',cmp:new Set()};
+  scr:{preset:'all',sec:'',sub:'',sort:'auto',dir:-1,limit:100},rot:'sec',cmp:new Set()};
 const H=()=>HZ[state.hz];
-const PD=(typeof PERF!=='undefined'&&PERF&&PERF.d)?PERF.d:null;
+const PD=(()=>{
+  if(typeof PERF==='undefined'||!PERF||!PERF.d)return null;
+  const d=PERF.d,k=Object.keys(d);
+  if(!k.some(s=>d[s].l===1))return d; // older perf.js without liquidity info
+  const o={};k.forEach(s=>{if(d[s].l===1)o[s]=d[s]});return o; // only the most actively traded stocks
+})();
 if(!PD){state.scr.sort='s';state.scr.dir=1}
-const PLAB={w:'1 Week',m:'1 Month',q:'3 Months',h:'6 Months'};
+const PLAB={tw:'This week so far',tm:'This month so far',w:'1 Week',m:'1 Month',q:'3 Months',h:'6 Months'};
+const GK=['w','m','q','h','tw','tm']; // 1W, 1M, 3M, 6M, this week, this month: gainers tabs, tables, screener
 const TK={};DATA.forEach(sec=>sec.s.forEach(sub=>sub.x.forEach(t=>{TK[t[0]]={sub:sub.n,sec:sec.n,cap:t[1]}})));
 const fmtPct=v=>(v>0?'+':'')+v.toFixed(2)+'%';
 const fmtDate=s=>new Date(s+'T00:00:00').toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'});
 function chipTitle(sym){
   const r=PD&&PD[sym];if(!r)return '';
-  return ' title="'+['w','m','q','h'].map(k=>PLAB[k]+' '+(r[k]==null?'n/a':fmtPct(r[k]))).join(' | ')+'"';
+  return ' title="'+GK.map(k=>PLAB[k]+' '+(r[k]==null?'n/a':fmtPct(r[k]))).join(' | ')+'"';
 }
 const PK=['w','m','q','h'];
-const PSH={w:'1W',m:'1M',q:'3M',h:'6M',o:'Overall',S:'Strength'};
+const PSH={tw:'Week',tm:'Month',w:'1W',m:'1M',q:'3M',h:'6M',o:'Overall',S:'Strength'};
 function med(a){a=a.slice().sort((x,y)=>x-y);const n=a.length;return n?(n%2?a[(n-1)/2]:(a[n/2-1]+a[n/2])/2):null}
 function aggr(list){
   const o={n:0};if(!PD)return o;
-  PK.forEach(k=>{const v=list.map(t=>PD[t[0]]&&PD[t[0]][k]).filter(x=>x!=null);o[k]=v.length?med(v):null});
+  ['tw','tm'].concat(PK).forEach(k=>{const v=list.map(t=>PD[t[0]]&&PD[t[0]][k]).filter(x=>x!=null);o[k]=v.length?med(v):null});
   const vs=PK.map(k=>o[k]).filter(x=>x!=null);
   o.o=vs.length?vs.reduce((a,b)=>a+b,0)/vs.length:null;
   o.n=list.filter(t=>PD[t[0]]).length;return o;
@@ -239,7 +245,7 @@ function aggr(list){
 function pc(v){return v==null?'<span>–</span>':'<span class="'+(v>=0?'pos':'neg')+'">'+fmtPct(v)+'</span>'}
 function pmHTML(a){
   if(!PD||!a.n)return '';
-  return '<span class="pm" title="Median stock return">'+PK.map(k=>'<span><i>'+PSH[k]+'</i>'+pc(a[k])+'</span>').join('')+'</span>';
+  return '<span class="pm" title="Median stock return">'+GK.map(k=>'<span><i>'+PSH[k]+'</i>'+pc(a[k])+'</span>').join('')+'</span>';
 }
 
 /* ---------- Strength, status and ratings (worked out in the browser from perf.js) ---------- */
@@ -321,13 +327,13 @@ function sectorTable(){
   const k=state.sort,val=r=>k==='S'?r.S:r.a[k];
   rows.sort((x,y)=>(val(y)==null?-1e9:val(y))-(val(x)==null?-1e9:val(x)));
   const n=state.cmp.size;
-  let h='<section class="perf" aria-label="Sector performance"><div class="perf-h"><div><div class="perf-t">Sector performance</div><div class="perf-asof">Median stock return in each sector. Overall is the average of the four periods. Strength and status use the '+H().label.toLowerCase()+'-term time frame. Click a column to rank by it.</div></div></div><div class="tw"><table class="st"><thead><tr><th>Sector</th><th>Stocks</th>'+
+  let h='<section class="perf" aria-label="Sector performance"><div class="perf-h"><div><div class="perf-t">Sector performance</div><div class="perf-asof">Median stock return in each sector. Week and Month are the current week and month so far (Week resets each Monday, Month on the 1st). Overall is the average of 1W, 1M, 3M and 6M. Strength and status use the '+H().label.toLowerCase()+'-term time frame. Click a column to rank by it.</div></div></div><div class="tw"><table class="st"><thead><tr><th>Sector</th><th>Stocks</th>'+
     '<th><button type="button" data-sort="S" aria-pressed="'+(k==='S')+'">Strength</button>'+tip('strength')+'</th><th>Status'+tip('status')+'</th>'+
-    ['w','m','q','h','o'].map(p=>'<th><button type="button" data-sort="'+p+'" aria-pressed="'+(p===k)+'">'+PSH[p]+'</button></th>').join('')+'</tr></thead><tbody>';
+    GK.concat('o').map(p=>'<th><button type="button" data-sort="'+p+'" aria-pressed="'+(p===k)+'">'+PSH[p]+'</button></th>').join('')+'</tr></thead><tbody>';
   rows.forEach((r,i)=>{
     const sl=slug(r.sec.n);
     h+='<tr><td><input type="checkbox" data-cmp="'+sl+'" aria-label="Select '+esc(r.sec.n)+' to compare"'+(state.cmp.has(sl)?' checked':'')+'> <span class="rk">'+(i+1)+'</span><button type="button" data-go="'+sl+'">'+esc(r.sec.n)+'</button></td><td>'+r.a.n+'</td><td>'+sbar(r.S)+'</td><td>'+qbadge(r.quad)+'</td>'+
-      ['w','m','q','h'].map(p=>'<td>'+pc(r.a[p])+'</td>').join('')+'<td class="ov">'+pc(r.a.o)+'</td></tr>';
+      GK.map(p=>'<td>'+pc(r.a[p])+'</td>').join('')+'<td class="ov">'+pc(r.a.o)+'</td></tr>';
   });
   h+='</tbody></table></div><div class="selbar">'+(n?'<span><b>'+n+'</b> selected</span><button type="button" class="btn2" data-compare="1"'+(n<2?' disabled':'')+'>Compare side by side</button><button type="button" class="btn2" data-cmpclear="1">Clear</button>':'<span>Tick 2 to 6 sectors to compare them side by side.</span>')+'</div></section>';
   return h;
@@ -369,8 +375,8 @@ function shiftsHTML(){
 function gainersHTML(pool){
   const k=state.period;
   let h='<section class="perf" aria-label="Top gainers"><div class="perf-h"><div><div class="perf-t">Top gainers</div>';
-  if(PD){h+='<div class="perf-asof">Close of '+fmtDate(PERF.asOf)+', updated daily after market close</div>'}
-  h+='</div><div class="pt" role="group" aria-label="Period">'+['w','m','q','h'].map(p=>'<button type="button" data-p="'+p+'" aria-pressed="'+(p===k)+'">'+PLAB[p]+'</button>').join('')+'</div></div>';
+  if(PD){const sd=PERF.since&&PERF.since[k];h+='<div class="perf-asof">Close of '+fmtDate(PERF.asOf)+(sd?', change since the close of '+fmtDate(sd)+' (last trading day on or before it)':'')+'. Updated daily after market close.</div>'}
+  h+='</div><div class="pt" role="group" aria-label="Period">'+GK.map(p=>'<button type="button" data-p="'+p+'" aria-pressed="'+(p===k)+'">'+PLAB[p]+'</button>').join('')+'</div></div>';
   if(!PD){return h+'<p class="empty">Price data has not been generated yet. Run the update workflow once to create perf.js.</p></section>'}
   const R=rateMap(H().main);
   const all=pool.filter(t=>PD[t[0]]&&PD[t[0]][k]!=null).sort((a,b)=>PD[b[0]][k]-PD[a[0]][k]);
@@ -378,7 +384,7 @@ function gainersHTML(pool){
   if(!rows.length)return h+'<p class="empty">No price data for this selection.</p></section>';
   h+='<ol class="gl">'+rows.map((t,i)=>{
     const r=PD[t[0]],m=TK[t[0]];
-    return '<li><span class="rk">'+(i+1)+'</span><span>'+flagBtn(t[0])+'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(t[0])+'/" target="_blank" rel="noopener">'+esc(t[0])+'</a><span class="ss">'+esc(m.sub)+' · '+CAPN[m.cap]+(R[t[0]]!=null?' · Rating '+R[t[0]]:'')+'</span></span><span class="px">₹'+r.p.toLocaleString('en-IN')+'</span><span class="rt">'+fmtPct(r[k])+'</span></li>';
+    return '<li><span class="rk">'+(i+1)+'</span><span>'+flagBtn(t[0])+'<a class="tk" href="https://www.screener.in/company/'+encodeURIComponent(t[0])+'/" target="_blank" rel="noopener">'+esc(t[0])+'</a><span class="ss">'+esc(m.sub)+' · '+CAPN[m.cap]+(R[t[0]]!=null?' · Rating '+R[t[0]]:'')+'</span></span><span class="px">₹'+(r.p/(1+r[k]/100)).toLocaleString('en-IN',{maximumFractionDigits:2})+' → ₹'+r.p.toLocaleString('en-IN')+'</span><span class="rt">'+fmtPct(r[k])+'</span></li>';
   }).join('')+'</ol>'+(all.length>rows.length?'<button type="button" class="more" data-more="1">Show next 10 ('+rows.length+' of '+all.length+' shown)</button>':'')+'</section>';
   return h;
 }
@@ -387,6 +393,8 @@ function gainersHTML(pool){
 const PRESETS=[
   {id:'all',label:'All stocks'},
   {id:'leaders',label:'Leaders',hint:()=>'Rating 80 or higher over '+H().about,test:(s,c)=>(c.R[s]||0)>=80},
+  {id:'nearhigh',label:'Near 52-week high',need:'trend',hint:()=>'Within 10% of its 52-week high',test:s=>!!(PD&&PD[s]&&PD[s].dh!=null&&PD[s].dh>=-10)},
+  {id:'uptrend',label:'In an uptrend',need:'trend',hint:()=>'Price above its 50-day and 200-day moving averages, and the 50-day above the 200-day',test:s=>!!(PD&&PD[s]&&PD[s].u===1)},
   {id:'rising',label:'Picking up speed',hint:()=>'Rating over '+PSH[H().fast]+' is at least 10 points above the '+PSH[H().slow]+' rating',test:(s,c)=>c.RF[s]!=null&&c.RS[s]!=null&&c.RF[s]-c.RS[s]>=10},
   {id:'allup',label:'Up in every period',hint:()=>'Positive return over 1W, 1M, 3M and 6M',test:s=>!!(PD&&PD[s]&&PK.every(k=>PD[s][k]!=null&&PD[s][k]>0))},
   {id:'inlead',label:'Strong in leading sub-sectors',hint:()=>'Rated 60 or higher, in a sub-sector with Leading status',test:(s,c)=>(c.R[s]||0)>=60&&(CUR.subBy[slug(TK[s].sec)+'|'+TK[s].sub]||{}).quad==='Leading'},
@@ -402,16 +410,17 @@ function stockList(preset,useFilters){
   }
   const q=state.q;if(q)l=l.filter(s=>s.toLowerCase().includes(q)||TK[s].sub.toLowerCase().includes(q));
   const P=PRESETS.find(p=>p.id===preset);if(P&&P.test)l=l.filter(s=>P.test(s,c));
-  const k=state.scr.sort,d=state.scr.dir,CAPV={L:3,M:2,S:1};
+  const k=state.scr.sort==='auto'?H().main:state.scr.sort,d=state.scr.dir,CAPV={L:3,M:2,S:1};
   const val=s=>k==='s'?s:k==='sub'?TK[s].sub:k==='cap'?CAPV[TK[s].cap]:k==='r'?c.R[s]:(PD&&PD[s]?PD[s][k]:null);
   l.sort((a,b)=>{const x=val(a),y=val(b);if(x==null&&y==null)return 0;if(x==null)return 1;if(y==null)return -1;return typeof x==='string'?x.localeCompare(y)*d:(x-y)*d});
   return l;
 }
-const SCOLS=[['s','Stock'],['sub','Sub-sector'],['cap','Cap'],['p','Price'],['w','1W'],['m','1M'],['q','3M'],['h','6M'],['r','Rating']];
+const HASTREND=!!(PD&&Object.keys(PD).some(s=>PD[s].u!=null));
+const SCOLS=[['s','Stock'],['sub','Sub-sector'],['cap','Cap'],['p','Price'],['w','1W'],['m','1M'],['q','3M'],['h','6M'],['tw','Week'],['tm','Month'],['r','Rating']];
 function stockTable(list,key){
   COPY[key]=list;
   if(!list.length)return '<p class="empty">No stocks match. Try another preset, sector or market cap.</p>';
-  const R=rateMap(H().main),rows=list.slice(0,state.scr.limit),k=state.scr.sort;
+  const R=rateMap(H().main),rows=list.slice(0,state.scr.limit),k=state.scr.sort==='auto'?H().main:state.scr.sort;
   let h='<div class="tw"><table class="st"><thead><tr>'+SCOLS.map(([c,l])=>'<th'+(c==='sub'||c==='cap'?' class="tl"':'')+'><button type="button" data-scol="'+c+'" aria-pressed="'+(c===k)+'">'+l+(c===k?(state.scr.dir>0?' ↑':' ↓'):'')+'</button>'+(c==='r'?tip('rating'):'')+'</th>').join('')+'</tr></thead><tbody>';
   rows.forEach(s=>{
     const m=TK[s],r=PD&&PD[s];
@@ -419,7 +428,7 @@ function stockTable(list,key){
       '<td class="tl">'+esc(m.sub)+'<span class="sectag"> · '+esc(m.sec)+'</span></td>'+
       '<td class="tl"><span class="dot '+m.cap+'"></span>'+CAPN[m.cap].replace('cap','')+'</td>'+
       '<td>'+(r&&r.p!=null?'₹'+r.p.toLocaleString('en-IN'):'–')+'</td>'+
-      PK.map(p=>'<td>'+(r?pc(r[p]):'–')+'</td>').join('')+
+      GK.map(p=>'<td>'+(r?pc(r[p]):'–')+'</td>').join('')+
       '<td class="rating">'+(R[s]!=null?R[s]:'–')+'</td></tr>';
   });
   h+='</tbody></table></div>';
@@ -432,7 +441,7 @@ function screenerHTML(){
   const secOpts='<option value="">All sectors</option>'+DATA.map(s=>'<option value="'+slug(s.n)+'"'+(f.sec===slug(s.n)?' selected':'')+'>'+esc(s.n)+'</option>').join('');
   const subOpts=sec?'<option value="">All sub-sectors</option>'+sec.s.map(y=>'<option value="'+esc(y.n)+'"'+(f.sub===y.n?' selected':'')+'>'+esc(y.n)+'</option>').join(''):'';
   return '<h1>Stock screener</h1><p class="lead">'+list.length.toLocaleString()+' stocks match.'+(PD?' Ratings use the '+H().label.toLowerCase()+'-term time frame ('+H().about+').':' Price data has not been generated yet, so only the stock list is shown.')+' The search box and market-cap filter above also apply.</p>'+
-    '<div class="caps" style="margin-bottom:12px" role="group" aria-label="Screener presets">'+PRESETS.map(p=>'<button type="button" class="cap" data-preset="'+p.id+'" aria-pressed="'+(p.id===f.preset)+'"'+(p.hint?' title="'+esc(p.hint())+'"':'')+'>'+p.label+'</button>').join('')+'</div>'+
+    '<div class="caps" style="margin-bottom:12px" role="group" aria-label="Screener presets">'+PRESETS.filter(p=>!p.need||HASTREND).map(p=>'<button type="button" class="cap" data-preset="'+p.id+'" aria-pressed="'+(p.id===f.preset)+'"'+(p.hint?' title="'+esc(p.hint())+'"':'')+'>'+p.label+'</button>').join('')+'</div>'+
     '<div class="tools" style="flex-wrap:wrap;align-items:center"><select class="sel" id="scrSec" aria-label="Sector">'+secOpts+'</select>'+(sec?'<select class="sel" id="scrSub" aria-label="Sub-sector">'+subOpts+'</select>':'')+copyBtn('scr')+'</div>'+
     '<section class="perf">'+stockTable(list,'scr')+'</section>';
 }
@@ -503,13 +512,13 @@ function guideHTML(){
   const c=(t,b)=>'<section class="perf guide"><h2>'+t+'</h2>'+b+'</section>';
   return '<h1>How to use Sector Atlas</h1><p class="lead">A quick guide to the numbers and a simple routine for finding strong stocks in strong groups.</p>'+
     c('What you are looking at','<p>Every stock in your list is grouped into a sector and a sub-sector. Using daily closing prices, the site ranks each group and each stock against the rest, so you can see at a glance where the market is strongest.</p>')+
-    c('Time frames','<p>The Short, Medium and Long switch at the top changes every ranking on the site.</p><ul><li><b>Short</b>: 1-week returns. Spots new moves early, but changes fast.</li><li><b>Medium</b>: 3-month returns. Confirms moves that have lasted.</li><li><b>Long</b>: 6-month returns. The big-picture leaders.</li></ul>')+
+    c('Time frames','<p>The Short, Medium and Long switch at the top changes every ranking on the site, and picks the matching tab in Top gainers (1 week, 1 month, 6 months).</p><ul><li><b>Short</b>: 1-week returns. Spots new moves early, but changes fast.</li><li><b>Medium</b>: 1-month returns. Confirms moves that have lasted.</li><li><b>Long</b>: 6-month returns. The big-picture leaders.</li></ul>')+
     c('Strength (0 to 100)','<p>The median stock return of a sector or sub-sector, ranked against every other group. 100 is the strongest group and 0 the weakest. Using the median means one or two extreme movers cannot make a weak group look strong.</p>')+
     c('Status','<ul><li>'+qbadge('Leading')+' Strength 50 or more, and its recent rank is at least as good as its longer rank.</li><li>'+qbadge('Gaining')+' Strength below 50, but improving.</li><li>'+qbadge('Fading')+' Strength 50 or more, but slowing down.</li><li>'+qbadge('Lagging')+' Strength below 50, and not improving.</li></ul><p>Improving compares a faster and a slower period: 1W against 1M on Short, 1M against 3M on Medium, and 3M against 6M on Long.</p>')+
     c('Rating (1 to 99)','<p>Each stock’s return for the chosen time frame, ranked against all the other stocks. A rating of 90 means the stock beat about 90% of the list. The rating is the same whatever filter you use.</p>')+
     c('Rotation map','<p>Each dot is a sector or sub-sector. Further right means stronger, higher up means picking up speed. Groups often travel clockwise: from Gaining into Leading, then Fading, then Lagging. A group moving from Gaining towards Leading is often worth a closer look.</p>')+
     c('A simple routine','<ol><li>Check <b>Market pulse</b> on the All sectors page. A weak mood calls for more caution.</li><li>Find the Leading and Gaining sectors in the sector table or on the rotation map.</li><li>Open a sector and sort its sub-sectors by Strength.</li><li>In the screener, use <b>Strong in leading sub-sectors</b> or <b>Leaders</b>.</li><li>Flag the stocks you like with the ☆ star, then use <b>Copy for TradingView</b> to check their charts there.</li></ol>')+
-    c('Good to know','<ul><li>Everything is worked out in your browser from the price-only, split-adjusted returns in perf.js. It updates when your daily workflow runs.</li><li>There is no volume, moving-average or 52-week-high data yet, so the rankings use returns only.</li><li>Your watchlist is stored in this browser. It will not appear on another device.</li><li>This is a research aid, not investment advice.</li></ul>');
+    c('Good to know','<ul><li>Everything is worked out in your browser from the price-only, split-adjusted returns in perf.js. It updates when your daily workflow runs.</li><li>Near 52-week high and In an uptrend (price above its 50 and 200-day averages) come from daily closes. Rankings use returns only.</li><li>Your watchlist is stored in this browser. It will not appear on another device.</li><li>This is a research aid, not investment advice.</li></ul>');
 }
 
 /* ---------- Core ---------- */
@@ -617,7 +626,7 @@ function render(){
     if(PD)html+=topSubsHTML()+shiftsHTML();
   }
   html+=gainersHTML(pool);
-  if(state.sector||q){html+='<div class="tools"><button type="button" id="openAll">Expand all</button><button type="button" id="closeAll">Collapse all</button>'+copyBtn('view')+(PD?'<span class="ssort">Sort sub-sectors: '+['size','S','w','m','q','h','o'].map(s=>'<button type="button" data-ss="'+s+'" aria-pressed="'+(s===state.subsort)+'">'+(s==='size'?'Size':PSH[s])+'</button>').join('')+'</span>':'')+'</div>'}
+  if(state.sector||q){html+='<div class="tools"><button type="button" id="openAll">Expand all</button><button type="button" id="closeAll">Collapse all</button>'+copyBtn('view')+(PD?'<span class="ssort">Sort sub-sectors: '+['size','S'].concat(GK,['o']).map(s=>'<button type="button" data-ss="'+s+'" aria-pressed="'+(s===state.subsort)+'">'+(s==='size'?'Size':PSH[s])+'</button>').join('')+'</span>':'')+'</div>'}
   let body='';
   SHOWN=[];
   if(!state.sector&&!q){
@@ -645,7 +654,7 @@ $('#view').addEventListener('click',e=>{
   const fl=e.target.closest('[data-flag]');if(fl){e.preventDefault();toggleFlag(fl.dataset.flag);return}
   const cp=e.target.closest('[data-copy]');if(cp){doCopy(cp.dataset.copy);return}
   const pr=e.target.closest('[data-preset]');if(pr){state.scr.preset=pr.dataset.preset;state.scr.limit=100;render();return}
-  const sc=e.target.closest('[data-scol]');if(sc){const k=sc.dataset.scol;if(state.scr.sort===k)state.scr.dir*=-1;else{state.scr.sort=k;state.scr.dir=(k==='s'||k==='sub')?1:-1}render();return}
+  const sc=e.target.closest('[data-scol]');if(sc){const k=sc.dataset.scol;if((state.scr.sort==='auto'?H().main:state.scr.sort)===k)state.scr.dir*=-1;else{state.scr.sort=k;state.scr.dir=(k==='s'||k==='sub')?1:-1}render();return}
   if(e.target.closest('[data-smore]')){state.scr.limit+=100;render();return}
   const ro=e.target.closest('[data-rot]');if(ro){state.rot=ro.dataset.rot;render();return}
   if(e.target.closest('[data-compare]')){go('compare');return}
@@ -680,7 +689,7 @@ $('#q').addEventListener('input',e=>{
   if(!['sectors','screener','watchlist'].includes(state.page)){state.page='sectors';state.sector=null;try{history.replaceState(null,'','#all-sectors')}catch(err){}}
   render();
 });
-$('#hz').addEventListener('click',e=>{const b=e.target.closest('[data-hz]');if(!b)return;state.hz=b.dataset.hz;store.set('hz',state.hz);render()});
+$('#hz').addEventListener('click',e=>{const b=e.target.closest('[data-hz]');if(!b)return;state.hz=b.dataset.hz;store.set('hz',state.hz);state.period=H().main;state.gn=10;render()});
 document.querySelectorAll('#hz [data-hz]').forEach(b=>{b.title=HZ[b.dataset.hz].tip});
 const darkMQ=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null;
 const effTheme=()=>document.documentElement.dataset.theme||(darkMQ&&darkMQ.matches?'dark':'light');
