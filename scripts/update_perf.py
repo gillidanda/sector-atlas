@@ -149,25 +149,29 @@ def merge_nse(got, nse):
         busy = [d for d, n in counts.items() if n >= 0.5 * len(got)]
         prev_day = max(busy) if busy else None
         for t, (close, prev, vol) in nse[date].items():
-            if t in got:
-                c, v = got[t]
-            else:
-                c, v = pd.Series(dtype=float), pd.Series(dtype=float)
-            y = c.get(date)
-            if y is not None and pd.notna(y) and abs(close / y - 1) > 0.03:
-                continue  # Yahoo already adjusted this day for a later split/bonus: keep Yahoo
-            before = c[c.index < date]
-            if len(before) and prev > 0 and before.index[-1] == prev_day:
-                ratio = prev / float(before.iloc[-1])
-                if abs(ratio - 1) > 0.03:  # split/bonus today that Yahoo has not applied yet
-                    c = c.copy()
-                    c[c.index < date] *= ratio
-            c = c.copy()
-            v = v.copy()
-            c[date] = close
-            v[date] = vol
-            c, v = c.sort_index(), v.sort_index()
-            got[t] = (c, v.reindex(c.index))
+            try:
+                if t in got:
+                    c, v = got[t]
+                else:
+                    empty = pd.DatetimeIndex([])
+                    c, v = pd.Series(dtype=float, index=empty), pd.Series(dtype=float, index=empty)
+                y = c.get(date)
+                if y is not None and pd.notna(y) and abs(close / y - 1) > 0.03:
+                    continue  # Yahoo already adjusted this day for a later split/bonus: keep Yahoo
+                before = c[c.index < date]
+                if len(before) and prev > 0 and before.index[-1] == prev_day:
+                    ratio = prev / float(before.iloc[-1])
+                    if abs(ratio - 1) > 0.03:  # split/bonus today that Yahoo has not applied yet
+                        c = c.copy()
+                        c[c.index < date] *= ratio
+                c = c.copy()
+                v = v.copy()
+                c[date] = close
+                v[date] = vol
+                c, v = c.sort_index(), v.sort_index()
+                got[t] = (c, v.reindex(c.index))
+            except Exception as e:  # one odd stock must never stop the update
+                print(f"Skipping NSE price for {t} on {date.date()}: {e}")
 
 
 def pick_as_of(series, coverage=0.85):
