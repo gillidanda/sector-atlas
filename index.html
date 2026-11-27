@@ -148,6 +148,7 @@ h1{font-family:var(--display);font-size:clamp(26px,4vw,36px);line-height:1.15;ma
 .flag.on{color:var(--small)}
 .chart{text-decoration:none;color:var(--muted);padding:0 0 0 6px;font-size:13px;line-height:1;opacity:.8}
 .chart:hover{opacity:1;color:var(--text,inherit)}
+.chart.tc{font-size:10px;font-weight:600;letter-spacing:.02em;border:1px solid currentColor;border-radius:3px;padding:0 3px;margin-left:5px;vertical-align:1px}
 .btn2{border:1px solid var(--line);background:var(--panel);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:13px}
 .btn2:hover:not(:disabled){background:var(--accent-soft)}
 .btn2:disabled{opacity:.5;cursor:default}
@@ -304,9 +305,9 @@ function computeGroups(){
 }
 
 /* ---------- Watchlist flags, TradingView copy, toast ---------- */
-/* Opens the stock in your saved TradingView layout. TradingView writes & and - as _ (M&M -> NSE:M_M). */
+/* 📈 opens your saved TradingView layout; TC opens TradingCharts.co. TradingView writes & and - as _ (M&M -> NSE:M_M). */
 const TV_LAYOUT='https://in.tradingview.com/chart/yJrzUFxK/';
-function chartBtn(s){return '<a class="chart" href="'+TV_LAYOUT+'?symbol='+encodeURIComponent('NSE:'+s.replace(/[&-]/g,'_'))+'" target="_blank" rel="noopener" title="Open '+esc(s)+' chart on TradingView" aria-label="Chart for '+esc(s)+'">📈</a>'}
+function chartBtn(s){return '<a class="chart" href="'+TV_LAYOUT+'?symbol='+encodeURIComponent('NSE:'+s.replace(/[&-]/g,'_'))+'" target="_blank" rel="noopener" title="Open '+esc(s)+' on TradingView" aria-label="TradingView chart for '+esc(s)+'">📈</a>'+'<a class="chart tc" href="https://tradingcharts.co/terminal?symbol='+encodeURIComponent(s)+'" target="_blank" rel="noopener" title="Open '+esc(s)+' on TradingCharts" aria-label="TradingCharts chart for '+esc(s)+'">TC</a>'}
 const flagBtn=s=>{const on=state.flags.has(s);return '<button type="button" class="flag'+(on?' on':'')+'" data-flag="'+esc(s)+'" aria-pressed="'+on+'" title="'+(on?'Remove from watchlist':'Add to watchlist')+'">'+(on?'★':'☆')+'</button>'};
 function toggleFlag(s){
   state.flags.has(s)?state.flags.delete(s):state.flags.add(s);store.set('flags',[...state.flags]);
