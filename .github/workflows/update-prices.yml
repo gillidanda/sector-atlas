@@ -28,11 +28,14 @@ jobs:
           python-version: "3.12"
       - run: pip install yfinance pandas
       - run: python scripts/update_perf.py
+      # Quarterly results for the hover card. If Yahoo refuses, prices still get saved.
+      - run: python scripts/update_fund.py
+        continue-on-error: true
       - name: Commit if changed
         run: |
           git config user.name "price-bot"
           git config user.email "price-bot@users.noreply.github.com"
-          git add perf.js
+          git add perf.js fund.js data/fund.json 2>/dev/null || git add perf.js
           git diff --cached --quiet && exit 0
           git commit -m "Update EOD prices"
           # If you uploaded files while this ran, fetch them first, then push.
